@@ -242,7 +242,7 @@ GEM
       date
       stringio
     public_suffix (6.0.2)
-    puma (6.6.1)
+    puma (7.1.0)
       nio4r (~> 2.0)
     racc (1.8.1)
     rack (3.2.3)
@@ -375,7 +375,7 @@ DEPENDENCIES
   guard-rspec (~> 4.7)
   listen (~> 3.8)
   pg (~> 1.1)
-  puma (~> 6.6)
+  puma (~> 7.1)
   rack-test (~> 2.1)
   rails (= 8.0)
   rspec-rails

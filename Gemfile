@@ -2,7 +2,7 @@ source "https://rubygems.org"
 ruby "3.3.8"
 
 gem "rails", "8.0"
-gem "puma",  "~> 6.6"
+gem "puma",  "~> 7.1"
 
 # Timezone helpers (from course list)
 gem "tzinfo"
