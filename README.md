@@ -1,59 +1,112 @@
-# **SETUP INSTRUCTIONS**
 
-Follow these steps to get Queue running locally.
 
-1. Install Ruby + Bundler
+# ** Setup Instructions**
 
-Make sure you’re using Ruby 3.3.8 and Bundler 2.7.2.
+### **Objective**
 
+Get Queue running locally for development and testing.
+This guide walks through environment setup, dependency installation, database initialization, and test verification.
+
+---
+
+## **1. Install Ruby + Bundler**
+
+Ensure you’re using:
+
+* **Ruby:** 3.3.8
+* **Bundler:** 2.7.2
+
+**Commands:**
+
+```bash
 rbenv install 3.3.8
 rbenv local 3.3.8
 gem install bundler -v 2.7.2
 rbenv rehash
+```
 
-2. Install Dependencies
+---
 
-From the project root:
+## **2. Install Dependencies**
 
+From the **project root**, run:
+
+```bash
 bundle _2.7.2_ install
+```
 
-3. Set Up the Database
+This installs all required gems listed in the `Gemfile`.
+
+---
+
+## **3. Set Up the Database**
+
+Initialize your local database:
+
+```bash
 bin/rails db:create
 bin/rails db:migrate
+```
 
+**Optional:** Load demo or seed data if available.
 
-(Optional) Load demo data if you’ve added a seed file:
-
+```bash
 bin/rails db:seed
+```
 
-4. Run the Server
+---
+
+## **4. Run the Server**
+
+Start your local Rails server:
+
+```bash
 bin/rails server
+```
 
+Then open the app in your browser:
+👉 [http://localhost:3000](http://localhost:3000)
 
-Then open:
-👉 http://localhost:3000
+---
 
-5. Run Tests (to confirm environment works)
+## **5. Run Tests (Confirm Environment Works)**
+
+Verify setup and ensure tests pass:
+
+```bash
 bundle exec rspec
 bundle exec cucumber
+```
 
+You should see:
 
-You should see “0 examples, 0 failures” if it’s a fresh setup.
+> “0 examples, 0 failures” if it’s a fresh setup.
 
-⚙️ Notes
+---
 
-Rails version: 8.0.0
+## **6. Notes**
 
-Ruby version: 3.3.8
+* **Rails version:** 8.0.0
+* **Ruby version:** 3.3.8
+* **Databases:**
 
-DB: SQLite (development), Postgres (production)
+  * SQLite (development)
+  * Postgres (production)
+* **Test frameworks:** RSpec + Cucumber
 
-Test frameworks: RSpec + Cucumber
+---
 
-To deploy: standard Heroku flow (heroku create, git push heroku main, heroku run rails db:migrate)
+## **7. Deployment (Heroku)**
 
+Use the **standard Heroku flow**:
 
+```bash
+heroku create
+git push heroku main
+heroku run rails db:migrate
+```
 
+---
 
 
 
