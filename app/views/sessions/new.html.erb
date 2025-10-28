@@ -1,0 +1,8 @@
+<h1>Login</h1>
+
+<div data-testid="login-form">
+  <%= form_with url: session_path, method: :post do %>
+    <%= hidden_field_tag :provider, "guest" %>
+    <button id="continue-as-guest" type="submit">Continue as guest</button>
+  <% end %>
+</div>

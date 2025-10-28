@@ -1,0 +1,14 @@
+<header style="display:flex;gap:12px;justify-content:space-between;align-items:center">
+  <h1>Search</h1>
+  <div>
+    <% if current_user %>
+      <span id="current-user"><%= current_user.display_name %></span>
+      <%= button_to "Logout", logout_path, method: :delete %>
+    <% else %>
+      <%= link_to "Login", root_path %>
+    <% end %>
+  </div>
+</header>
+
+<input data-testid="song-search-input" type="text" placeholder="Search songs..." />
+<div data-testid="queue-list"></div>

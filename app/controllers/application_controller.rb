@@ -6,6 +6,7 @@ class ApplicationController < ActionController::Base
 
   private
 
+
   def set_current_user
     return if session[:user_id].blank?
     @current_user ||= User.find_by(id: session[:user_id])
