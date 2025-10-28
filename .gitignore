@@ -1,0 +1,67 @@
+# --- OS/editor junk -----------------------------------------------------------
+**/.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# --- Bundler ------------------------------------------------------------------
+/.bundle
+/vendor/bundle/
+
+# --- Environment / credentials ------------------------------------------------
+/.env*
+/.env.*.local
+/config/master.key
+/config/credentials/*.key
+
+# --- Logs / temp --------------------------------------------------------------
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+
+# PID files
+/tmp/pids/*
+!/tmp/pids/
+!/tmp/pids/.keep
+
+# Active Storage (dev artifacts)
+/storage/*
+!/storage/.keep
+/tmp/storage/*
+!/tmp/storage/
+!/tmp/storage/.keep
+
+# --- Database (sqlite dev/test) ----------------------------------------------
+/db/*.sqlite3
+/db/*.sqlite3-*
+/db/*.sqlite3-shm
+/db/*.sqlite3-wal
+
+# Keep schema.rb (or structure.sql) under version control:
+# !/db/schema.rb
+# !/db/structure.sql
+
+# --- Assets / builds (Route A: no sprockets/importmap packs) ------------------
+/public/assets
+# If you ever switch to propshaft/other build dirs, uncomment:
+# /app/assets/builds/
+# /public/packs/
+
+# --- Test artifacts -----------------------------------------------------------
+/coverage/
+.rspec_status
+spec/examples.txt
+
+# --- RuboCop cache ------------------------------------------------------------
+/.rubocop-https---*
+/.rubocop_cache/
+
+# --- Docker/Kamal (optional; ignore local deploy noise) ----------------------
+.kamal/
+config/deploy.yml
+
+# --- Node (not used now, safe to ignore if added later) -----------------------
+/node_modules/
