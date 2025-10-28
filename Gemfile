@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 ruby "3.3.8"
 
-gem "rails", "8.0"
+gem "rails", "8.1.0"
 gem "puma",  "~> 6.6"
 
 # Timezone helpers (from course list)
