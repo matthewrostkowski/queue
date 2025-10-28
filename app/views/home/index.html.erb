@@ -1,0 +1,11 @@
+<div class="card">
+  <h1>Welcome to Queue</h1>
+  <p>Queue your songs, upvote others, and shape the vibe in real time.</p>
+  <form action="/session" method="post" style="display:flex;gap:12px;align-items:center;margin-top:12px">
+    <%= csrf_meta_tags %>
+    <input type="hidden" name="provider" value="guest">
+    <input type="text" name="display_name" placeholder="Your name (optional)" style="padding:10px;border:1px solid var(--line);border-radius:10px">
+    <button class="btn">Continue as Guest</button>
+  </form>
+  <p style="color:var(--muted);margin-top:8px">Spotify OAuth can be added later.</p>
+</div>
