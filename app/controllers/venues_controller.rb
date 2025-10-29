@@ -1,6 +1,4 @@
 class VenuesController < ApplicationController
-  before_action :require_user!
-
   def show
     venue = Venue.find(params[:id])
     queue_session = venue.queue_sessions.active.first

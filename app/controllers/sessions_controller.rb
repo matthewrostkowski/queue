@@ -1,5 +1,5 @@
 class SessionsController < ApplicationController
-  skip_before_action :set_current_user
+  skip_before_action :authenticate_user!, only: [:create, :destroy]
   skip_forgery_protection if -> { request.format.json? } # 給 JSON 客戶端用（可保留）
 
   def create

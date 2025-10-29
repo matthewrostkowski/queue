@@ -22,7 +22,19 @@ When("I logout") do
   click_button "Logout"
 end
 
-Then("I should be on the login page") do
-  expect(page).to have_current_path("/", ignore_query: true)
-  expect(page).to have_selector(Selectors::LOGIN_FORM)
+Given("I am logged out") do
+  Capybara.reset_sessions!
+  begin
+    page.driver.submit :delete, "/logout", {}
+  rescue StandardError
+  end
+end
+
+When('I visit {string}') do |path|
+  visit path
+end
+
+Then('I should be on the login page') do
+  expect(page).to have_current_path('/login', ignore_query: true)
+  expect(page).to have_selector('[data-testid="login-form"]')
 end

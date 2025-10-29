@@ -1,5 +1,4 @@
 class QueueItemsController < ApplicationController
-  before_action :require_user!
 
   def index
     session_id = params[:queue_session_id]

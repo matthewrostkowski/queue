@@ -1,6 +1,4 @@
 class SongsController < ApplicationController
-  before_action :require_user!
-
  def search
     q = params[:q].to_s.downcase
     results = Song.where('LOWER(title) LIKE ? OR LOWER(artist) LIKE ?', "%#{q}%", "%#{q}%")

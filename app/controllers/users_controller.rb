@@ -1,6 +1,4 @@
 class UsersController < ApplicationController
-  before_action :require_user!
-
   # GET /users/:id/summary
   def summary
     user = User.find(params[:id])
