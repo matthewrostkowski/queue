@@ -38,3 +38,10 @@ Then('I should be on the login page') do
   expect(page).to have_current_path('/login', ignore_query: true)
   expect(page).to have_selector('[data-testid="login-form"]')
 end
+
+# authenticate user when the session is available
+Given('I am logged in as {string}') do |name|
+  page.driver.submit :post, "/session", { provider: "guest", display_name: name }
+  visit "/mainpage"
+  expect(page).to have_current_path("/mainpage", ignore_query: true)
+end
