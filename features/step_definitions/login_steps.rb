@@ -45,3 +45,15 @@ Given('I am logged in as {string}') do |name|
   visit "/mainpage"
   expect(page).to have_current_path("/mainpage", ignore_query: true)
 end
+
+Given("a general user exists with email {string} and password {string} and display name {string}") do |email, pw, name|
+  User.create!(auth_provider: "general_user", email: email.downcase, password: pw, password_confirmation: pw, display_name: name)
+end
+
+When('I fill in {string} with {string}') do |field, value|
+  fill_in field, with: value
+end
+
+When('I press {string}') do |label|
+  click_button label
+end

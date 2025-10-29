@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 20251028005) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_29_070327) do
   create_table "queue_items", force: :cascade do |t|
     t.integer "song_id", null: false
     t.integer "queue_session_id", null: false
@@ -49,6 +49,8 @@ ActiveRecord::Schema[8.0].define(version: 20251028005) do
     t.string "access_token"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "email"
+    t.string "password_digest"
   end
 
   create_table "venues", force: :cascade do |t|

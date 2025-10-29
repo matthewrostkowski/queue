@@ -33,3 +33,4 @@ group :production do
 end
 
 gem "bootsnap", require: false
+gem "bcrypt", "~> 3.1"

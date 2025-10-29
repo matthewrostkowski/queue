@@ -2,16 +2,42 @@
   <h1>Welcome to Queue</h1>
   <p>Queue your songs, upvote others, and shape the vibe in real time.</p>
 
-  <%= form_with url: session_path, method: :post, local: true do %>
-    <%= hidden_field_tag :provider, "guest" %>
-    <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
-      <input type="text"
-             name="display_name"
-             placeholder="Your name (optional)"
-             style="padding:10px;border:1px solid var(--line);border-radius:10px" />
-      <button id="continue-as-guest" class="btn" type="submit">Continue as Guest</button>
-    </div>
+  <% if flash[:alert].present? %>
+    <p style="color:#b91c1c;"><%= flash[:alert] %></p>
   <% end %>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <!-- General User Sign In -->
+    <div>
+      <h3>Sign in</h3>
+      <%= form_with url: session_path, method: :post, local: true do %>
+        <%= hidden_field_tag :provider, "general_user" %>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <input type="email" name="email" placeholder="Email" required
+                 style="padding:10px;border:1px solid var(--line);border-radius:10px" />
+          <input type="password" name="password" placeholder="Password" required
+                 style="padding:10px;border:1px solid var(--line);border-radius:10px" />
+          <button class="btn" type="submit">Sign in</button>
+        </div>
+      <% end %>
+      <p style="margin-top:8px">No account? <a href="<%= signup_path %>">Sign up</a></p>
+    </div>
+
+    <!-- Continue as Guest -->
+    <div>
+      <h3>Continue as Guest</h3>
+      <%= form_with url: session_path, method: :post, local: true do %>
+        <%= hidden_field_tag :provider, "guest" %>
+        <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
+          <input type="text"
+                 name="display_name"
+                 placeholder="Your name (optional)"
+                 style="padding:10px;border:1px solid var(--line);border-radius:10px" />
+          <button id="continue-as-guest" class="btn" type="submit">Continue as Guest</button>
+        </div>
+      <% end %>
+    </div>
+  </div>
 
   <p style="color:var(--muted);margin-top:8px">Spotify OAuth can be added later.</p>
 </div>

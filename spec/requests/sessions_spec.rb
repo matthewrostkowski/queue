@@ -35,4 +35,19 @@ RSpec.describe "Sessions", type: :request do
       expect(response.body).to include('data-testid="login-form"')
     end
   end
+
+  describe "guest login with same display_name creates distinct users" do
+    it "creates a new user record even if the name matches" do
+      post "/session", params: { provider: "guest", display_name: "michael" }
+      first = User.order(:id).last
+      delete "/logout"
+
+      post "/session", params: { provider: "guest", display_name: "michael" }
+      second = User.order(:id).last
+
+      expect(first.id).not_to eq(second.id)
+      expect(first.display_name).to eq("michael")
+      expect(second.display_name).to eq("michael")
+    end
+  end
 end

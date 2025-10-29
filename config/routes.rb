@@ -12,4 +12,7 @@ Rails.application.routes.draw do
   get "/scan",     to: "scan#index",  as: :scan
   get "/search",   to: "search#index", as: :search
   get "/profile",  to: "profiles#show", as: :profile
+
+  get  "/signup", to: "users#new",    as: :signup
+  post "/users",  to: "users#create", as: :users
 end

@@ -1,0 +1,25 @@
+<div class="card">
+  <h1>Create your account</h1>
+
+  <% if flash[:alert].present? %>
+    <p style="color:#b91c1c;"><%= flash[:alert] %></p>
+  <% end %>
+
+  <%= form_with model: @user, url: users_path, method: :post, local: true do |f| %>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:420px;">
+      <%= f.label :email %>
+      <%= f.email_field :email, required: true, style: "padding:10px;border:1px solid var(--line);border-radius:10px" %>
+
+      <%= f.label :password %>
+      <%= f.password_field :password, required: true, style: "padding:10px;border:1px solid var(--line);border-radius:10px" %>
+
+      <%= f.label :password_confirmation %>
+      <%= f.password_field :password_confirmation, required: true, style: "padding:10px;border:1px solid var(--line);border-radius:10px" %>
+
+      <%= f.label :display_name %> <small>(optional)</small>
+      <%= f.text_field :display_name, style: "padding:10px;border:1px solid var(--line);border-radius:10px" %>
+
+      <%= f.submit "Create account", class: "btn" %>
+    </div>
+  <% end %>
+</div>
