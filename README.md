@@ -48,6 +48,16 @@ bin/rails db:create
 bin/rails db:migrate
 ```
 
+recreate your local database:
+
+```bash
+rm -f storage/development.sqlite3 storage/test.sqlite3
+bin/rails db:create
+bin/rails db:schema:load
+RAILS_ENV=test bin/rails db:create
+RAILS_ENV=test bin/rails db:schema:load
+```
+
 **Optional:** Load demo or seed data if available.
 
 ```bash
