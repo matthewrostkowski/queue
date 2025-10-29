@@ -8,7 +8,7 @@
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
 # Demo venue + session
-v = Venue.find_or_create_by!(name: 'Demo Venue', address: '123 Broadway, NYC')
+v = Venue.find_or_create_by!(name: 'Demo Venue', location: '123 Broadway, NYC', capacity: 100)
 qs = QueueSession.find_or_create_by!(venue: v, is_active: true)
 
 u = User.find_or_create_by!(display_name: 'Guest', auth_provider: 'guest')

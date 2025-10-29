@@ -53,7 +53,8 @@ ActiveRecord::Schema[8.0].define(version: 20251028005) do
 
   create_table "venues", force: :cascade do |t|
     t.string "name", null: false
-    t.string "address"
+    t.string "location", null: false
+    t.integer "capacity", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
