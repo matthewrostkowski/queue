@@ -5,28 +5,22 @@ class User < ApplicationRecord
   validates :display_name, presence: true
   validates :auth_provider, presence: true
 
-  
-
   def total_upvotes_received
     queue_items.sum(:vote_count)
   end
 
+
   def queue_summary
     {
+      id: id,
       username: display_name,
-      songs_queued_count: queue_items.count,
-      total_upvotes_received: total_upvotes_received
+      queued_count: queue_items.count,
+      upvotes_total: total_upvotes_received,
+      by_status: queue_items.group(:status).count
     }
   end
 
-  def profile_picture
-    profile_picture_url.presence || default_profile_picture
-  end
 
   private
   
-  def default_profile_picture
-    "https://ui-avatars.com/api/?name=#{display_namel}&background=1DB954&color=fff&size=200"
-  end
-
 end
