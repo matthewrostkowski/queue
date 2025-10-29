@@ -1,6 +1,6 @@
 class SessionsController < ApplicationController
   skip_before_action :authenticate_user!, only: [:create, :destroy]
-  skip_forgery_protection if -> { request.format.json? } # 給 JSON 客戶端用（可保留）
+  skip_forgery_protection if -> { request.format.json? }
 
   def create
     provider     = params[:provider].presence || "guest"
@@ -10,7 +10,7 @@ class SessionsController < ApplicationController
     session[:user_id] = user.id
 
     respond_to do |format|
-      format.html { redirect_to mainpage_path, notice: "Welcome, #{user.display_name}" } # 登入後到 mainpage
+      format.html { redirect_to mainpage_path, notice: "Welcome, #{user.display_name}" }
       format.json { render json: { id: user.id, display_name: user.display_name, provider: user.auth_provider }, status: :ok }
     end
   end
@@ -18,7 +18,7 @@ class SessionsController < ApplicationController
   def destroy
     reset_session
     respond_to do |format|
-      format.html { redirect_to root_path, notice: "Signed out" } # 登出回 login (root)
+      format.html { redirect_to login_path, status: :see_other, notice: "Signed out" }
       format.json { head :no_content }
     end
   end

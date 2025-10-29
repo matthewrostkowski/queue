@@ -1,7 +1,7 @@
 Rails.application.routes.draw do
   # login / landing
-  root "login#index"
-  get "/login", to: "login#index" # 別名（可選）
+  get  "/login", to: "login#index", as: :login
+  root to: redirect("/login")
 
   # auth
   post   "/session", to: "sessions#create",  as: :session
