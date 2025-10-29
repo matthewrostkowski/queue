@@ -107,6 +107,59 @@ heroku run rails db:migrate
 ```
 
 ---
+## Pages & Routing Overview
+
+### App Pages
+- **Login Page** — `GET /` (alias: `GET /login`)  
+  *Controller:* `LoginController#index`  
+  *Notes:* Landing page with a simple form (`POST /session`) to sign in as Guest.  
+- **Main Page** — `GET /mainpage`  
+  *Controller:* `MainController#index`  
+  *Notes:* Post-login landing. Navbar shows `Main / Scan / Search / Profile` + current user + Logout.
+- **Scan Page** — `GET /scan`  
+  *Controller:* `ScanController#index`  
+  *Notes:* Placeholder for QR scanning UI.
+- **Search Page** — `GET /search`  
+  *Controller:* `SearchController#index`  
+  *Notes:* Placeholder for upcoming song search.
+- **Profile Page** — `GET /profile`  
+  *Controller:* `ProfilesController#show`  
+  *Notes:* Requires login; shows a stub card for future user stats.
+
+### Auth Endpoints
+- **Create Session (login)** — `POST /session`  
+  *Controller:* `SessionsController#create`  
+  *HTML:* Redirects to `/mainpage` on success.  
+  *JSON:* Returns `{ id, display_name, provider }` with `200 OK`.
+- **Destroy Session (logout)** — `DELETE /logout`  
+  *Controller:* `SessionsController#destroy`  
+  *HTML:* Redirects to `/` (login).  
+  *JSON:* `204 No Content`.
+
+### Current Flow
+1. `GET /` → Login page  
+2. Submit form → `POST /session` → **redirect →** `GET /mainpage`  
+3. Header shows current user + `Logout`  
+4. `DELETE /logout` → **redirect →** `GET /` (login page)
+
+### Access Control
+- `current_user` is set from `session[:user_id]`.  
+- Use `before_action :require_user!` in controllers you want to protect (e.g., `ProfilesController`).  
+- Navbar adapts:
+  - **Logged out:** only “Login” (→ `/`)
+  - **Logged in:** `Main / Scan / Search / Profile` + current user + Logout
+
+### Routing Summary
+| Route           | Verb   | Controller#Action        | Purpose                          |
+|-----------------|--------|--------------------------|----------------------------------|
+| `/`             | GET    | `login#index`            | Login/Landing                    |
+| `/login`        | GET    | `login#index`            | Login alias                      |
+| `/session`      | POST   | `sessions#create`        | Create session (login)           |
+| `/logout`       | DELETE | `sessions#destroy`       | Destroy session (logout)         |
+| `/mainpage`     | GET    | `main#index`             | Post-login main page             |
+| `/scan`         | GET    | `scan#index`             | QR scan placeholder              |
+| `/search`       | GET    | `search#index`           | Song search placeholder          |
+| `/profile`      | GET    | `profiles#show`          | User profile (requires login)    |
 
 
 
