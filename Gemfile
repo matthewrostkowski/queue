@@ -18,6 +18,7 @@ group :development, :test do
   gem "cucumber-rails", require: false
   gem "capybara", "~> 3.40"
   gem "database_cleaner-active_record"
+  gem 'shoulda-matchers', '~> 5.0'
   gem "simplecov", "~> 0.22", require: false
   gem "webmock",   "~> 3.23"
 

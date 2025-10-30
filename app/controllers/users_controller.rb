@@ -20,6 +20,11 @@ class UsersController < ApplicationController
     end
   end
 
+  def summary
+    user = User.find(params[:id])
+    render json: user.queue_summary
+  end
+
   private
 
   def user_params

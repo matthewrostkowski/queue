@@ -1,9 +1,9 @@
-class CreateUsers < ActiveRecord::Migration[7.1]
+class CreateVenues < ActiveRecord::Migration[7.1]
   def change
-    create_table :users do |t|
-      t.string :display_name, null: false
-      t.string :auth_provider, null: false
-      t.string :access_token
+    create_table :venues do |t|
+      t.string :name, null: false
+      t.string :location, null: false
+      t.integer :capacity, null: false
       t.timestamps
     end
   end

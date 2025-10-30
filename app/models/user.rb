@@ -1,5 +1,6 @@
 class User < ApplicationRecord
   has_many :queue_items, dependent: :nullify
+  has_many :queued_songs, through: :queue_items, source: :song
 
   # ── Providers ───────────────────────────────────────────────
   has_secure_password validations: false 
@@ -16,6 +17,20 @@ class User < ApplicationRecord
   # ── Callbacks ───────────────────────────────────────────────
   before_save :downcase_email
 
+  def total_upvotes_received
+    queue_items.sum(:vote_count)
+  end
+
+  def queue_summary
+    {
+      id: id,
+      username: display_name,
+      queued_count: queue_items.count,
+      upvotes_total: total_upvotes_received,
+      by_status: queue_items.group(:status).count
+    }
+  end
+
   private
 
   def downcase_email
@@ -23,6 +38,6 @@ class User < ApplicationRecord
   end
 
   def password_required?
-  auth_provider == "general_user" && (password_digest.blank? || password.present?)
+    auth_provider == "general_user" && (password_digest.blank? || password.present?)
   end
 end

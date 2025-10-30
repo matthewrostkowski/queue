@@ -318,6 +318,8 @@ GEM
     rspec-support (3.13.6)
     securerandom (0.4.1)
     shellany (0.0.1)
+    shoulda-matchers (5.3.0)
+      activesupport (>= 5.2.0)
     simplecov (0.22.0)
       docile (~> 1.1)
       simplecov-html (~> 0.11)
@@ -381,6 +383,7 @@ DEPENDENCIES
   rack-test (~> 2.1)
   rails (= 8.0)
   rspec-rails
+  shoulda-matchers (~> 5.0)
   simplecov (~> 0.22)
   sqlite3 (~> 2.1)
   tzinfo
