@@ -19,4 +19,14 @@ Rails.application.routes.draw do
   
   # queue management
   post "/queue_items", to: "queue_items#create", as: :queue_items
+
+  # Queue items JSON API
+  resources :queue_items, only: [:index, :create] do
+    member do
+      patch :vote   # /queue_items/:id/vote
+    end
+  end
+
+  get "songs/search", to: "songs#search"
+  resources :venues, only: [:show]
 end
