@@ -65,3 +65,6 @@ config/deploy.yml
 
 # --- Node (not used now, safe to ignore if added later) -----------------------
 /node_modules/
+UI_UX.md
+Gemfile.lock
+Gemfile
