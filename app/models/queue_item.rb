@@ -1,19 +1,24 @@
 class QueueItem < ApplicationRecord
-  belongs_to :song
   belongs_to :queue_session
-  belongs_to :user
+  belongs_to :song, optional: true  # Make optional
+  belongs_to :user, optional: true  # Make optional
 
-  validates :song, :queue_session, :user, presence: true
-  validates :base_price, presence: true, numericality: { greater_than: 0 }
-
-  def price_for_display
-    demand = QueueItem.where(queue_session_id: queue_session_id, song_id: song_id, status: 'pending').count
-    multiplier = 1.0 + (demand - 1) * 0.10 + (vote_count * 0.05)
-    (base_price * multiplier).round(2)
-  end
-
-  def vote!(delta)
-    self.vote_count = [0, vote_count + delta].max
-    save!
-  end
+  # Validations
+  validates :title, presence: true
+  validates :artist, presence: true
+  
+  # We're storing song data directly on QueueItem:
+  # - title
+  # - artist
+  # - cover_url
+  # - duration_ms
+  # - preview_url
+  # - spotify_id (Deezer ID)
+  # - user_display_name (instead of user_id)
+  # - vote_score
+  
+  # Scopes
+  scope :unplayed, -> { where(played_at: nil) }
+  scope :played, -> { where.not(played_at: nil) }
+  scope :by_votes, -> { order(vote_score: :desc, created_at: :asc) }
 end
