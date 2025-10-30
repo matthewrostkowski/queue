@@ -28,10 +28,14 @@ class QueueItemsController < ApplicationController
       queue_params = queue_item_params
     end
     
+    # Convert base_price to base_price_cents for backwards compatibility
+    base_price = queue_params['base_price'] || queue_params[:base_price] || 3.99
+    base_price_cents = (base_price.to_f * 100).to_i
+    
     qi = QueueItem.new(
       song_id: queue_params['song_id'] || queue_params[:song_id],
       queue_session_id: queue_params['queue_session_id'] || queue_params[:queue_session_id],
-      base_price: queue_params['base_price'] || queue_params[:base_price] || 3.99,
+      base_price_cents: base_price_cents,
       user: current_user,
       status: 'pending',
       vote_count: 0,

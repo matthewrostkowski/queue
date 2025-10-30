@@ -1,15 +1,3 @@
-<header style="display:flex;gap:12px;justify-content:space-between;align-items:center">
-  <h1>Search Songs</h1>
-  <div>
-    <% if current_user %>
-      <span id="current-user"><%= current_user.display_name %></span>
-      <%= button_to "Logout", logout_path, method: :delete %>
-    <% else %>
-      <%= link_to "Login", root_path %>
-    <% end %>
-  </div>
-</header>
-
 <nav style="margin:20px 0">
   <%= link_to "Main", mainpage_path %> | 
   <%= link_to "Scan", scan_path %> | 
