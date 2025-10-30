@@ -1,6 +1,13 @@
 <div class="card" data-testid="profile-page">
   <h1>@<%= @user.display_name %></h1>
   <p>Your Queue activity and contributions</p>
+  
+  <nav style="margin:20px 0">
+    <%= link_to "Main", mainpage_path %> | 
+    <%= link_to "Scan", scan_path %> | 
+    <%= link_to "Search", search_path %> | 
+    <strong>Profile</strong>
+  </nav>
 
   <!-- Stats Summary -->
   <div style="display:flex;gap:24px;margin:24px 0;padding:16px;background:rgba(45,45,45,0.3);border-radius:10px">

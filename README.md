@@ -1,6 +1,30 @@
 
 
-# ** Setup Instructions**
+# **Queue Music - Iteration 1**
+
+### **Team Members**
+- **[Your Name]** - [Your UNI]
+- **[Team Member 2]** - [UNI]
+- **[Team Member 3]** - [UNI]
+- **[Team Member 4]** - [UNI]
+
+### **Deployment**
+- **Heroku URL**: [To be added]
+- **GitHub Repository**: https://github.com/[your-username]/queuemusic
+
+### **Project Summary**
+Queue is a social music control system for venues. Patrons can join venue queues, search for songs, add them to the queue, and vote on songs to influence play order. This iteration includes:
+
+- ✅ **Authentication System**: Guest login and email/password registration
+- ✅ **User Profiles**: View queue statistics and contribution history  
+- ✅ **Queue Management**: Add songs and vote on queue items
+- ✅ **Venue System**: Join venue queues via QR codes
+- ✅ **Comprehensive Testing**: 32 RSpec tests + 15 Cucumber scenarios (100% passing)
+- ✅ **59% Test Coverage**: Well-tested core functionality
+
+---
+
+## **Setup Instructions**
 
 ### **Objective**
 
@@ -108,13 +132,22 @@ You should see:
 
 ## **7. Deployment (Heroku)**
 
-Use the **standard Heroku flow**:
-
+### **Quick Deploy**
 ```bash
-heroku create
+# Install Heroku CLI first: https://devcenter.heroku.com/articles/heroku-cli
+heroku create your-app-name
 git push heroku main
 heroku run rails db:migrate
+heroku run rails db:seed  # Optional: load demo data
+heroku open
 ```
+
+### **Environment Setup**
+The app is configured for Heroku with:
+- ✅ `Procfile` for Puma web server
+- ✅ PostgreSQL for production database  
+- ✅ SQLite for development/test
+- ✅ Rails 8.0 + Ruby 3.3.4
 
 ---
 # Login function

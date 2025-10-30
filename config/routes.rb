@@ -15,4 +15,8 @@ Rails.application.routes.draw do
 
   get  "/signup", to: "users#new",    as: :signup
   post "/users",  to: "users#create", as: :users
+  get  "/users/:id/summary", to: "users#summary", as: :user_summary
+  
+  # queue management
+  post "/queue_items", to: "queue_items#create", as: :queue_items
 end

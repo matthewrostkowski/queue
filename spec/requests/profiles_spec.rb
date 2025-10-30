@@ -5,7 +5,7 @@ RSpec.describe "Profiles", type: :request do
   
   before do
     allow_any_instance_of(ApplicationController).to receive(:current_user).and_return(user)
-    allow_any_instance_of(ApplicationController).to receive(:require_user!).and_return(true)
+    allow_any_instance_of(ApplicationController).to receive(:authenticate_user!).and_return(true)
   end
 
   describe "GET /profile" do

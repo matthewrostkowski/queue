@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_29_070327) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_30_020157) do
   create_table "queue_items", force: :cascade do |t|
     t.integer "song_id", null: false
     t.integer "queue_session_id", null: false
@@ -55,9 +55,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_29_070327) do
 
   create_table "venues", force: :cascade do |t|
     t.string "name", null: false
-    t.string "address"
+    t.string "location"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "capacity"
   end
 
   add_foreign_key "queue_items", "queue_sessions"

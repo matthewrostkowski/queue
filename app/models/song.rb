@@ -5,6 +5,6 @@ class Song < ApplicationRecord
   has_many :users_who_queued, through: :queue_items, source: :user
 
   def album_art
-    album_art_url.presence || "https://via.placeholder.com/200x200/1DB954/ffffff?text=#{title[0]}"
+    cover_url.presence || "https://via.placeholder.com/200x200/1DB954/ffffff?text=#{title[0]}"
   end
 end

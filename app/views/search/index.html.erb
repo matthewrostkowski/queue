@@ -1,5 +1,5 @@
 <header style="display:flex;gap:12px;justify-content:space-between;align-items:center">
-  <h1>Search</h1>
+  <h1>Search Songs</h1>
   <div>
     <% if current_user %>
       <span id="current-user"><%= current_user.display_name %></span>
@@ -10,5 +10,63 @@
   </div>
 </header>
 
-<input data-testid="song-search-input" type="text" placeholder="Search songs..." />
-<div data-testid="queue-list"></div>
+<nav style="margin:20px 0">
+  <%= link_to "Main", mainpage_path %> | 
+  <%= link_to "Scan", scan_path %> | 
+  <strong>Search</strong> | 
+  <%= link_to "Profile", profile_path %>
+</nav>
+
+<div style="margin:20px 0">
+  <%= form_with url: search_path, method: :get, local: true, style: "display:flex;gap:10px" do |f| %>
+    <%= f.text_field :q, value: params[:q], placeholder: "Search for songs...", 
+                     data: { testid: "song-search-input" }, 
+                     style: "padding:8px;border:1px solid #ccc;border-radius:4px;flex:1" %>
+    <%= f.submit "Search", style: "padding:8px 16px;background:#007cba;color:white;border:none;border-radius:4px;cursor:pointer" %>
+  <% end %>
+</div>
+
+<div data-testid="search-results" style="margin:20px 0">
+  <% if params[:q].present? %>
+    <h3>Search Results for "<%= params[:q] %>"</h3>
+    <% if @songs.any? %>
+      <% @songs.each do |song| %>
+        <div style="border:1px solid #ddd;padding:15px;margin:10px 0;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h4 style="margin:0 0 5px 0"><%= song.title %></h4>
+            <p style="margin:0;color:#666">by <%= song.artist %></p>
+          </div>
+          <div>
+            <%= form_with url: queue_items_path, method: :post, local: true do |f| %>
+              <%= f.hidden_field :queue_item, value: { song_id: song.id, queue_session_id: 1, base_price: 3.99 }.to_json %>
+              <%= f.submit "Add to Queue", 
+                          style: "padding:8px 16px;background:#28a745;color:white;border:none;border-radius:4px;cursor:pointer" %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <p>No songs found matching "<%= params[:q] %>"</p>
+    <% end %>
+  <% else %>
+    <p>Enter a song title or artist name to search</p>
+    <div style="margin:20px 0">
+      <h4>Available Songs:</h4>
+      <% Song.limit(5).each do |song| %>
+        <div style="border:1px solid #ddd;padding:15px;margin:10px 0;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h4 style="margin:0 0 5px 0"><%= song.title %></h4>
+            <p style="margin:0;color:#666">by <%= song.artist %></p>
+          </div>
+          <div>
+            <%= form_with url: queue_items_path, method: :post, local: true do |f| %>
+              <%= f.hidden_field :queue_item, value: { song_id: song.id, queue_session_id: 1, base_price: 3.99 }.to_json %>
+              <%= f.submit "Add to Queue", 
+                          style: "padding:8px 16px;background:#28a745;color:white;border:none;border-radius:4px;cursor:pointer" %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

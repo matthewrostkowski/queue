@@ -19,11 +19,35 @@ class QueueItemsController < ApplicationController
   end
 
   def create
-    qi = QueueItem.new(queue_item_params.merge(user: current_user, status: 'pending', vote_count: 0, base_priority: 0))
-    if qi.save
-      render json: { id: qi.id, price_for_display: qi.price_for_display.to_f }, status: :created
+    # Handle both JSON and form submissions
+    if params[:queue_item].is_a?(String)
+      # Parse JSON string from hidden field
+      queue_params = JSON.parse(params[:queue_item])
     else
-      render json: { errors: qi.errors.full_messages }, status: :unprocessable_entity
+      # Direct parameters
+      queue_params = queue_item_params
+    end
+    
+    qi = QueueItem.new(
+      song_id: queue_params['song_id'] || queue_params[:song_id],
+      queue_session_id: queue_params['queue_session_id'] || queue_params[:queue_session_id],
+      base_price: queue_params['base_price'] || queue_params[:base_price] || 3.99,
+      user: current_user,
+      status: 'pending',
+      vote_count: 0,
+      base_priority: 0
+    )
+    
+    if qi.save
+      respond_to do |format|
+        format.html { redirect_to profile_path, notice: "Song added to queue!" }
+        format.json { render json: { id: qi.id, price_for_display: qi.price_for_display.to_f }, status: :created }
+      end
+    else
+      respond_to do |format|
+        format.html { redirect_to search_path, alert: qi.errors.full_messages.first }
+        format.json { render json: { errors: qi.errors.full_messages }, status: :unprocessable_entity }
+      end
     end
   end
 

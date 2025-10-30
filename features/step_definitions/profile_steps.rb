@@ -1,15 +1,6 @@
-Given('I am logged in as {string}') do |username|
-  @current_user = User.create!(
-    display_name: username,
-    auth_provider: 'guest'
-  )
-  
-  # Simulate login by creating a session
-  # Assuming you have a login flow - adjust based on your SessionsController
-  page.driver.post session_path, { 
-    provider: 'guest', 
-    display_name: username 
-  }
+# Get current user after login from login_steps.rb
+def current_user
+  @current_user ||= User.find_by(display_name: @username) if @username
 end
 
 Given('I am not logged in') do
@@ -29,8 +20,9 @@ end
 
 Given('I have queued the song {string} by {string}') do |title, artist|
   song = Song.find_or_create_by!(title: title, artist: artist)
+  user = User.last # Get the user created by login step
   @queue_item = QueueItem.create!(
-    user: @current_user,
+    user: user,
     song: song,
     queue_session: @queue_session,
     base_price: 3.99,
@@ -45,8 +37,9 @@ end
 
 Given('I have queued the song {string} by {string} with status {string}') do |title, artist, status|
   song = Song.find_or_create_by!(title: title, artist: artist)
+  user = User.last # Get the user created by login step
   @queue_item = QueueItem.create!(
-    user: @current_user,
+    user: user,
     song: song,
     queue_session: @queue_session,
     base_price: 3.99,
@@ -60,10 +53,11 @@ Given('that song has a base price of {string}') do |price|
 end
 
 Given('I have queued the following songs:') do |table|
+  user = User.last # Get the user created by login step
   table.hashes.each do |row|
     song = Song.find_or_create_by!(title: row['title'], artist: row['artist'])
     QueueItem.create!(
-      user: @current_user,
+      user: user,
       song: song,
       queue_session: @queue_session,
       base_price: 3.99,
@@ -125,6 +119,7 @@ Then('I should see a price displayed for that song') do
 end
 
 Then('I should see an unauthorized message') do
-unauthorized = page.has_content?('unauthorized') 
-  expect(unauthorized).to be true
+  # App redirects to login page when unauthorized
+  expect(page).to have_current_path('/login', ignore_query: true)
+  expect(page).to have_content('Please sign in')
 end
