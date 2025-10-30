@@ -9,8 +9,8 @@ RSpec.describe QueueItem, type: :model do
   end
 
   it "orders by vote_score desc then created_at asc" do
-    b = QueueItem.create!(queue_session: session, title: "B", artist: "A", vote_score: 3, created_at: 2.minutes.ago)
-    a = QueueItem.create!(queue_session: session, title: "A", artist: "A", vote_score: 1, created_at: 1.minute.ago)
-    expect(QueueItem.by_votes).to eq([b, a])
+    high = QueueItem.create!(queue_session: session, title: "High", artist: "A", vote_score: 3, created_at: 2.minutes.ago)
+    low  = QueueItem.create!(queue_session: session, title: "Low",  artist: "A", vote_score: 1, created_at: 1.minute.ago)
+    expect(QueueItem.by_votes).to eq([high, low])
   end
 end

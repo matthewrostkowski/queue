@@ -1,4 +1,5 @@
 class User < ApplicationRecord
+<<<<<<< HEAD
   has_many :queue_items, dependent: :nullify
   has_many :queued_songs, through: :queue_items, source: :song
 
@@ -40,4 +41,11 @@ class User < ApplicationRecord
   def password_required?
     auth_provider == "general_user" && (password_digest.blank? || password.present?)
   end
+=======
+  has_many :queue_items, dependent: :destroy
+  has_many :songs, through: :queue_items
+
+  # For Iteration 1 we just need *a* user, not full Spotify auth.
+  validates :display_name, presence: true
+>>>>>>> 5cb46b8 (Song search and playing Queue screen)
 end
