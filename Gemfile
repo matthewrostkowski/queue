@@ -46,5 +46,4 @@ group :production do
   gem "pg", "~> 1.1"
 end
 
-gem "bootsnap", require: false
 gem "bcrypt", "~> 3.1"

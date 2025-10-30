@@ -3,6 +3,12 @@ require "rails_helper"
 RSpec.describe "QueueItems", type: :request do
   let!(:venue)   { Venue.create!(name: "V") }
   let!(:session) { QueueSession.create!(venue: venue, is_active: true) }
+  let(:user) { User.create!(display_name: 'TestUser', auth_provider: 'guest') }
+  
+  before do
+    allow_any_instance_of(ApplicationController).to receive(:current_user).and_return(user)
+    allow_any_instance_of(ApplicationController).to receive(:authenticate_user!).and_return(true)
+  end
 
   it "creates an item from the search form params" do
     params = {

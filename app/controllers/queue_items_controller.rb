@@ -1,8 +1,5 @@
 class QueueItemsController < ApplicationController
-<<<<<<< HEAD
-=======
   before_action :set_queue_item, only: [:show, :vote, :upvote, :downvote, :destroy]
->>>>>>> 5cb46b8 (Song search and playing Queue screen)
 
   # GET /queue_items
   def index
@@ -17,42 +14,27 @@ class QueueItemsController < ApplicationController
 
   # POST /queue_items
   def create
-<<<<<<< HEAD
     # Handle both JSON and form submissions
     if params[:queue_item].is_a?(String)
       # Parse JSON string from hidden field
       queue_params = JSON.parse(params[:queue_item])
+      # Convert base_price to base_price_cents if present
+      if queue_params['base_price']
+        queue_params['base_price_cents'] = (queue_params['base_price'].to_f * 100).to_i
+        queue_params.delete('base_price')
+      end
     else
       # Direct parameters
       queue_params = queue_item_params
     end
     
-    qi = QueueItem.new(
-      song_id: queue_params['song_id'] || queue_params[:song_id],
-      queue_session_id: queue_params['queue_session_id'] || queue_params[:queue_session_id],
-      base_price: queue_params['base_price'] || queue_params[:base_price] || 3.99,
-      user: current_user,
-      status: 'pending',
-      vote_count: 0,
-      base_priority: 0
-    )
-    
-    if qi.save
-      respond_to do |format|
-        format.html { redirect_to profile_path, notice: "Song added to queue!" }
-        format.json { render json: { id: qi.id, price_for_display: qi.price_for_display.to_f }, status: :created }
-      end
-    else
-      respond_to do |format|
-        format.html { redirect_to search_path, alert: qi.errors.full_messages.first }
-        format.json { render json: { errors: qi.errors.full_messages }, status: :unprocessable_entity }
-=======
-    @queue_item = QueueItem.new(queue_item_params)
+    @queue_item = QueueItem.new(queue_params)
     @queue_item.queue_session = current_queue_session
+    @queue_item.user = current_user if current_user
     @queue_item.vote_score ||= 0
     @queue_item.base_price_cents ||= 100
     @queue_item.status ||= "pending"
-
+    
     if @queue_item.save
       respond_to do |format|
         format.html { redirect_to queue_path, notice: "Song added to queue!" }
@@ -62,7 +44,6 @@ class QueueItemsController < ApplicationController
       respond_to do |format|
         format.html { redirect_to search_path, alert: "Failed to add song." }
         format.json { render json: { errors: @queue_item.errors.full_messages }, status: :unprocessable_entity }
->>>>>>> 5cb46b8 (Song search and playing Queue screen)
       end
     end
   end

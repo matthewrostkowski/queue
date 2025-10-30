@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
-<<<<<<< HEAD
 <head>
-  <title>Queue</title>
+  <title>Queue Music</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
@@ -25,7 +24,7 @@
 <body>
   <header>
     <div class="wrap">
-      <div><strong>Queue</strong></div>
+      <div><strong>Queue Music</strong></div>
 
       <% if current_user %>
         <nav>
@@ -52,17 +51,6 @@
     <% flash.each do |type, msg| %>
       <div class="flash <%= type %>"><%= msg %></div>
     <% end %>
-
-=======
-  <head>
-    <title>Queue Music</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <%= csrf_meta_tags %>
-    <%= csp_meta_tag %>
-  </head>
-
-  <body>
->>>>>>> 5cb46b8 (Song search and playing Queue screen)
     <%= yield %>
   </body>
 </html>

@@ -38,7 +38,7 @@
           </div>
           <div>
             <%= form_with url: queue_items_path, method: :post, local: true do |f| %>
-              <%= f.hidden_field :queue_item, value: { song_id: song.id, queue_session_id: 1, base_price: 3.99 }.to_json %>
+              <%= f.hidden_field :queue_item, value: { song_id: song.id, queue_session_id: 1, base_price_cents: 399 }.to_json %>
               <%= f.submit "Add to Queue", 
                           style: "padding:8px 16px;background:#28a745;color:white;border:none;border-radius:4px;cursor:pointer" %>
             <% end %>
@@ -60,7 +60,7 @@
           </div>
           <div>
             <%= form_with url: queue_items_path, method: :post, local: true do |f| %>
-              <%= f.hidden_field :queue_item, value: { song_id: song.id, queue_session_id: 1, base_price: 3.99 }.to_json %>
+              <%= f.hidden_field :queue_item, value: { song_id: song.id, queue_session_id: 1, base_price_cents: 399 }.to_json %>
               <%= f.submit "Add to Queue", 
                           style: "padding:8px 16px;background:#28a745;color:white;border:none;border-radius:4px;cursor:pointer" %>
             <% end %>

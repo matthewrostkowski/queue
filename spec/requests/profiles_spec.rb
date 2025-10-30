@@ -43,14 +43,16 @@ RSpec.describe "Profiles", type: :request do
         session = venue.queue_sessions.create!(is_active: true)
         song = Song.create!(title: 'Blinding Lights', artist: 'The Weeknd')
         
-        QueueItem.create!(
-          user: user,
-          song: song,
-          queue_session: session,
-          base_price: 3.99,
-          vote_count: 10,
-          status: 'pending'
-        )
+      QueueItem.create!(
+        user: user,
+        song: song,
+        queue_session: session,
+        title: song.title,
+        artist: song.artist,
+        base_price_cents: 399,
+        vote_score: 10,
+        status: 'pending'
+      )
       end
 
       it "displays song title" do

@@ -1,5 +1,7 @@
 Rails.application.routes.draw do
-<<<<<<< HEAD
+  # Prevent /favicon.ico from failing scenarios
+  get "/favicon.ico", to: ->(_env) { [204, { "Content-Type" => "image/x-icon" }, []] }
+
   # login / landing
   get  "/login", to: "login#index", as: :login
   root to: redirect("/login")
@@ -18,21 +20,11 @@ Rails.application.routes.draw do
   post "/users",  to: "users#create", as: :users
   get  "/users/:id/summary", to: "users#summary", as: :user_summary
   
-  # queue management
-  post "/queue_items", to: "queue_items#create", as: :queue_items
-=======
-  # Prevent /favicon.ico from failing scenarios
-  get "/favicon.ico", to: ->(_env) { [204, { "Content-Type" => "image/x-icon" }, []] }
-
-  # Root route
-  root "songs#search"
-
-  # Songs/Search
-  get "/search", to: "songs#search"
+  # Songs/Search (from PR #8)
   get "/songs", to: "songs#index"
   get "/songs/:id", to: "songs#show"
 
-  # Queue Items
+  # Queue Items (from PR #8)
   resources :queue_items, only: [:index, :create, :show, :destroy] do
     member do
       post :upvote
@@ -40,12 +32,11 @@ Rails.application.routes.draw do
     end
   end
 
-  # Queue/Live View
+  # Queue/Live View (from PR #8)
   get  "/queue",                to: "queues#show"
   post "/queue/start_playback", to: "queues#start_playback"
   post "/queue/next_track",     to: "queues#next_track"
 
   # Health check
   get "up" => "rails/health#show", as: :rails_health_check
->>>>>>> 5cb46b8 (Song search and playing Queue screen)
 end

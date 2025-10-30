@@ -1,7 +1,7 @@
 class User < ApplicationRecord
-<<<<<<< HEAD
   has_many :queue_items, dependent: :nullify
   has_many :queued_songs, through: :queue_items, source: :song
+  has_many :songs, through: :queue_items
 
   # ── Providers ───────────────────────────────────────────────
   has_secure_password validations: false 
@@ -19,7 +19,7 @@ class User < ApplicationRecord
   before_save :downcase_email
 
   def total_upvotes_received
-    queue_items.sum(:vote_count)
+    queue_items.sum(:vote_score)
   end
 
   def queue_summary
@@ -41,11 +41,4 @@ class User < ApplicationRecord
   def password_required?
     auth_provider == "general_user" && (password_digest.blank? || password.present?)
   end
-=======
-  has_many :queue_items, dependent: :destroy
-  has_many :songs, through: :queue_items
-
-  # For Iteration 1 we just need *a* user, not full Spotify auth.
-  validates :display_name, presence: true
->>>>>>> 5cb46b8 (Song search and playing Queue screen)
 end

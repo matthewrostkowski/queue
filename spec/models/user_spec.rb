@@ -70,20 +70,24 @@ RSpec.describe User, type: :model do
         song1 = Song.create!(title: 'Song 1', artist: 'Artist 1')
         song2 = Song.create!(title: 'Song 2', artist: 'Artist 2')
         
-        QueueItem.create!(
-          user: user,
-          song: song1,
-          queue_session: session,
-          base_price: 3.99,
-          vote_count: 5
-        )
+      QueueItem.create!(
+        user: user,
+        song: song1,
+        queue_session: session,
+        title: song1.title,
+        artist: song1.artist,
+        base_price_cents: 399,
+        vote_score: 5
+      )
         
         QueueItem.create!(
           user: user,
           song: song2,
           queue_session: session,
-          base_price: 4.99,
-          vote_count: 10
+          title: song2.title,
+          artist: song2.artist,
+          base_price_cents: 499,
+          vote_score: 10
         )
       end
 
@@ -95,13 +99,15 @@ RSpec.describe User, type: :model do
     context 'when user has queue items with zero votes' do
       before do
         song = Song.create!(title: 'Song', artist: 'Artist')
-        QueueItem.create!(
-          user: user,
-          song: song,
-          queue_session: session,
-          base_price: 3.99,
-          vote_count: 0
-        )
+      QueueItem.create!(
+        user: user,
+        song: song,
+        queue_session: session,
+        title: song.title,
+        artist: song.artist,
+        base_price_cents: 399,
+        vote_score: 0
+      )
       end
 
       it 'returns 0' do
@@ -128,13 +134,15 @@ RSpec.describe User, type: :model do
         session = venue.queue_sessions.create!(is_active: true)
         song = Song.create!(title: 'Test', artist: 'Artist')
         
-        QueueItem.create!(
-          user: user,
-          song: song,
-          queue_session: session,
-          base_price: 3.99,
-          vote_count: 7
-        )
+      QueueItem.create!(
+        user: user,
+        song: song,
+        queue_session: session,
+        title: song.title,
+        artist: song.artist,
+        base_price_cents: 399,
+        vote_score: 7
+      )
       end
 
       it 'returns correct counts' do

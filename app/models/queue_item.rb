@@ -21,4 +21,10 @@ class QueueItem < ApplicationRecord
   scope :unplayed, -> { where(played_at: nil) }
   scope :played, -> { where.not(played_at: nil) }
   scope :by_votes, -> { order(vote_score: :desc, created_at: :asc) }
+
+  # Price display method
+  def price_for_display
+    return 0.0 unless base_price_cents
+    base_price_cents / 100.0
+  end
 end

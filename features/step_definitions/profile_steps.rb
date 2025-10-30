@@ -25,14 +25,16 @@ Given('I have queued the song {string} by {string}') do |title, artist|
     user: user,
     song: song,
     queue_session: @queue_session,
-    base_price: 3.99,
-    vote_count: 0,
+    title: title,
+    artist: artist,
+    base_price_cents: 399,
+    vote_score: 0,
     status: 'pending'
   )
 end
 
 Given('that song has received {int} upvotes') do |upvotes|
-  @queue_item.update!(vote_count: upvotes)
+  @queue_item.update!(vote_score: upvotes)
 end
 
 Given('I have queued the song {string} by {string} with status {string}') do |title, artist, status|
@@ -42,14 +44,16 @@ Given('I have queued the song {string} by {string} with status {string}') do |ti
     user: user,
     song: song,
     queue_session: @queue_session,
-    base_price: 3.99,
-    vote_count: 0,
+    title: title,
+    artist: artist,
+    base_price_cents: 399,
+    vote_score: 0,
     status: status
   )
 end
 
 Given('that song has a base price of {string}') do |price|
-  @queue_item.update!(base_price: price.gsub('$', '').to_f)
+  @queue_item.update!(base_price_cents: (price.gsub('$', '').to_f * 100).to_i)
 end
 
 Given('I have queued the following songs:') do |table|
@@ -60,8 +64,10 @@ Given('I have queued the following songs:') do |table|
       user: user,
       song: song,
       queue_session: @queue_session,
-      base_price: 3.99,
-      vote_count: row['upvotes'].to_i,
+      title: row['title'],
+      artist: row['artist'],
+      base_price_cents: 399,
+      vote_score: row['upvotes'].to_i,
       status: row['status']
     )
   end
