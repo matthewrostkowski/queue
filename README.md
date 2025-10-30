@@ -1,12 +1,35 @@
 
 
-# **Queue Music - Iteration 1**
+# **Queue: "Queue it. Upvote it. Hear it"**
 
 ### **Team Members**
-- **[Your Name]** - [Your UNI]
-- **[Team Member 2]** - [UNI]
-- **[Team Member 3]** - [UNI]
-- **[Team Member 4]** - [UNI]
+- **Matt Gatune** - mkg2170
+- **Jonah Aden** - jka2154
+- **Tzu-An Cheng** - tc3497
+- **Matthew Rostkowski** - mcr2225
+
+### **Project Overview**
+
+**Pain Points We're Addressing:**
+- **For the Customer:** The lack of control over the music at venues
+- **For the Venue Owner:** Music (ex. DJs) is a fixed cost with no guaranteed profit/customer engagement, or return. Instead of music being a cost for owners, it is now an additional source of profit
+- **For the DJ:** Difficulty in guessing the crowd's taste without any real-time tools
+
+**What Our SaaS Does:**
+- **Interactive Control:** Patrons can choose, pay for, and upvote songs in real time, influencing the playback order
+- **Surge Pricing / Market Mechanism:** Song prices adjust in real time based on demand, time, and location, transforming music from a cost center into a revenue stream
+- **Social & Data Insights:** DJs receive real-time data on which songs are being requested and upvoted, aiding in selection decisions
+- **Seamless Integration:** Fully digital — no hardware, venues connect their speakers and playlist through the Spotify API
+
+**Why We're Unique:**
+- Queue Management & Upvote Function
+- Multiple Music Provider Integration
+- Logical for Bars
+- Logical for Clubs
+- Market Component for Making Money
+- All of the above are bound into one streamlined app that is intuitive to use
+
+**Video Demo:** https://youtu.be/P19SGGUauF8?si=UQ9la7P8lGKR9cKh
 
 ### **Deployment**
 - **Heroku URL**: [To be added]
