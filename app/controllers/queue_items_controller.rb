@@ -1,8 +1,5 @@
 class QueueItemsController < ApplicationController
-<<<<<<< HEAD
-=======
-  before_action :set_queue_item, only: [:show, :vote, :upvote, :downvote, :destroy]
->>>>>>> 5cb46b8 (Song search and playing Queue screen)
+  before_action :set_queue_item, only: [:show, :upvote, :downvote, :destroy]
 
   # GET /queue_items
   def index
@@ -17,52 +14,47 @@ class QueueItemsController < ApplicationController
 
   # POST /queue_items
   def create
-<<<<<<< HEAD
-    # Handle both JSON and form submissions
-    if params[:queue_item].is_a?(String)
-      # Parse JSON string from hidden field
-      queue_params = JSON.parse(params[:queue_item])
-    else
-      # Direct parameters
-      queue_params = queue_item_params
+    # First, find or create the Song
+    song = Song.find_or_create_by(spotify_id: params[:spotify_id]) do |s|
+      s.title = params[:title]
+      s.artist = params[:artist]
+      s.cover_url = params[:cover_url]
+      s.duration_ms = params[:duration_ms]
+      s.preview_url = params[:preview_url]
     end
-    
+
+    unless song.persisted?
+      respond_to do |format|
+        format.html { redirect_to search_path, alert: "Could not save song: #{song.errors.full_messages.join(', ')}" }
+        format.json { render json: { errors: song.errors.full_messages }, status: :unprocessable_entity }
+      end
+      return
+    end
+
+    # Get or create the current queue session
+    queue_session = current_queue_session
+
+    # Create the QueueItem with schema-correct fields
     qi = QueueItem.new(
-      song_id: queue_params['song_id'] || queue_params[:song_id],
-      queue_session_id: queue_params['queue_session_id'] || queue_params[:queue_session_id],
-      base_price: queue_params['base_price'] || queue_params[:base_price] || 3.99,
+      song: song,
+      queue_session: queue_session,
       user: current_user,
-      status: 'pending',
+      base_price_cents: 399,  # 399 cents = $3.99
       vote_count: 0,
-      base_priority: 0
+      vote_score: 0,
+      base_priority: 0,
+      status: 'pending'
     )
     
     if qi.save
       respond_to do |format|
-        format.html { redirect_to profile_path, notice: "Song added to queue!" }
-        format.json { render json: { id: qi.id, price_for_display: qi.price_for_display.to_f }, status: :created }
+        format.html { redirect_to queue_path, notice: "Song added to queue!" }
+        format.json { render json: { id: qi.id, song: song }, status: :created }
       end
     else
       respond_to do |format|
         format.html { redirect_to search_path, alert: qi.errors.full_messages.first }
         format.json { render json: { errors: qi.errors.full_messages }, status: :unprocessable_entity }
-=======
-    @queue_item = QueueItem.new(queue_item_params)
-    @queue_item.queue_session = current_queue_session
-    @queue_item.vote_score ||= 0
-    @queue_item.base_price_cents ||= 100
-    @queue_item.status ||= "pending"
-
-    if @queue_item.save
-      respond_to do |format|
-        format.html { redirect_to queue_path, notice: "Song added to queue!" }
-        format.json { render json: @queue_item, status: :created }
-      end
-    else
-      respond_to do |format|
-        format.html { redirect_to search_path, alert: "Failed to add song." }
-        format.json { render json: { errors: @queue_item.errors.full_messages }, status: :unprocessable_entity }
->>>>>>> 5cb46b8 (Song search and playing Queue screen)
       end
     end
   end
@@ -126,24 +118,10 @@ class QueueItemsController < ApplicationController
     @queue_item = QueueItem.find(params[:id])
   end
 
-  def queue_item_params
-    params.permit(
-      :song_id,
-      :user_id,
-      :title,
-      :artist,
-      :cover_url,
-      :duration_ms,
-      :preview_url,
-      :spotify_id,
-      :user_display_name,
-      :base_price_cents,
-      :vote_score
-    )
-  end
-
   def current_queue_session
-    QueueSession.active.first || QueueSession.first || create_default_session
+    QueueSession.where(is_active: true).first || 
+    QueueSession.first || 
+    create_default_session
   end
 
   def create_default_session

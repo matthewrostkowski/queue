@@ -1,11 +1,4 @@
 class SongsController < ApplicationController
-<<<<<<< HEAD
- def search
-    q = params[:q].to_s.downcase
-    results = Song.where('LOWER(title) LIKE ? OR LOWER(artist) LIKE ?', "%#{q}%", "%#{q}%")
-                  .limit(5).map { |s| s.as_json(only: [:id, :title, :artist, :cover_url]) }
-    render json: { results: results }
-=======
   require 'net/http'
   require 'json'
 
@@ -16,7 +9,6 @@ class SongsController < ApplicationController
     if @query.present?
       @results = search_deezer(@query)
     end
->>>>>>> 5cb46b8 (Song search and playing Queue screen)
   end
 
   def index
