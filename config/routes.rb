@@ -20,6 +20,18 @@ Rails.application.routes.draw do
   get    "/profile", to: "users#show", as: "profile"
   delete "/logout",  to: "sessions#destroy", as: "logout"
 
+  # Session management
+  post "/session", to: "sessions#create", as: :session
+  
+  # Login routes
+  get  "/login", to: "login#index", as: :login
+  
+  # Main page
+  get  "/mainpage", to: "main#index", as: :mainpage
+  
+  # Scan route
+  get  "/scan", to: "scan#index", as: :scan
+
   # Queue Items (voting on individual items)
   resources :queue_items, only: [:index, :create, :show, :destroy] do
     member do
