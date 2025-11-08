@@ -36,8 +36,8 @@ class User < ApplicationRecord
   def queue_summary
     {
       username: display_name,
-      songs_queued: queue_items.count,
-      total_upvotes: total_upvotes_received
+      queued_count: queue_items.count,
+      upvotes_total: total_upvotes_received
     }
   end
 

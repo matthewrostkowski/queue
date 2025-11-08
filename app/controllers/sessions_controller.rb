@@ -15,7 +15,7 @@ class SessionsController < ApplicationController
         session[:user_id] = user.id
         respond_to do |format|
           format.html { redirect_to mainpage_path, notice: "Welcome back, #{user.display_name}" }
-          format.json { render json: { id: user.id, display_name: user.display_name, provider: user.auth_provider }, status: :ok }
+          format.json { render json: { id: user.id, display_name: user.display_name, auth_provider: user.auth_provider }, status: :ok }
         end
       else
         respond_to do |format|
@@ -30,9 +30,10 @@ class SessionsController < ApplicationController
       display_name = params[:display_name].presence || "Guest #{SecureRandom.hex(3)}"
       user = User.create!(auth_provider: "guest", display_name: display_name)
       session[:user_id] = user.id
+
       respond_to do |format|
         format.html { redirect_to mainpage_path, notice: "Welcome, #{user.display_name}" }
-        format.json { render json: { id: user.id, display_name: user.display_name, provider: user.auth_provider }, status: :ok }
+        format.json { render json: { id: user.id, display_name: user.display_name, auth_provider: user.auth_provider }, status: :ok }
       end
     end
   end
