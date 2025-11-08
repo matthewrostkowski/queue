@@ -1,47 +1,55 @@
 class QueueItemsController < ApplicationController
+  before_action :set_queue_item, only: [:show, :upvote, :downvote, :destroy]
 
+  # GET /queue_items
   def index
-    session_id = params[:queue_session_id]
-    return render json: { error: 'missing queue_session_id' }, status: :unprocessable_entity if session_id.blank?
-
-    items = QueueItem.includes(:song)
-                     .where(queue_session_id: session_id, status: 'pending')
-                     .order(Arel.sql('vote_count DESC, base_priority DESC, created_at ASC'))
-
-    render json: items.map { |qi|
-      {
-        id: qi.id,
-        song: { id: qi.song.id, title: qi.song.title, artist: qi.song.artist, cover_url: qi.song.cover_url },
-        votes: qi.vote_count,
-        price_for_display: qi.price_for_display.to_f
-      }
-    }
+    @queue_items = QueueItem.unplayed.by_votes
+    render json: @queue_items
   end
 
+  # GET /queue_items/:id
+  def show
+    render json: @queue_item
+  end
+
+  # POST /queue_items
   def create
-    # Handle both JSON and form submissions
-    if params[:queue_item].is_a?(String)
-      # Parse JSON string from hidden field
-      queue_params = JSON.parse(params[:queue_item])
-    else
-      # Direct parameters
-      queue_params = queue_item_params
+    # First, find or create the Song
+    song = Song.find_or_create_by(spotify_id: params[:spotify_id]) do |s|
+      s.title = params[:title]
+      s.artist = params[:artist]
+      s.cover_url = params[:cover_url]
+      s.duration_ms = params[:duration_ms]
+      s.preview_url = params[:preview_url]
     end
-    
+
+    unless song.persisted?
+      respond_to do |format|
+        format.html { redirect_to search_path, alert: "Could not save song: #{song.errors.full_messages.join(', ')}" }
+        format.json { render json: { errors: song.errors.full_messages }, status: :unprocessable_entity }
+      end
+      return
+    end
+
+    # Get or create the current queue session
+    queue_session = current_queue_session
+
+    # Create the QueueItem with schema-correct fields
     qi = QueueItem.new(
-      song_id: queue_params['song_id'] || queue_params[:song_id],
-      queue_session_id: queue_params['queue_session_id'] || queue_params[:queue_session_id],
-      base_price: queue_params['base_price'] || queue_params[:base_price] || 3.99,
+      song: song,
+      queue_session: queue_session,
       user: current_user,
-      status: 'pending',
+      base_price_cents: 399,  # 399 cents = $3.99
       vote_count: 0,
-      base_priority: 0
+      vote_score: 0,
+      base_priority: 0,
+      status: 'pending'
     )
     
     if qi.save
       respond_to do |format|
-        format.html { redirect_to profile_path, notice: "Song added to queue!" }
-        format.json { render json: { id: qi.id, price_for_display: qi.price_for_display.to_f }, status: :created }
+        format.html { redirect_to queue_path, notice: "Song added to queue!" }
+        format.json { render json: { id: qi.id, song: song }, status: :created }
       end
     else
       respond_to do |format|
@@ -51,17 +59,73 @@ class QueueItemsController < ApplicationController
     end
   end
 
-  # PATCH /queue_items/:id/vote  { delta: 1 | -1 }
+  # POST /queue_items/:id/upvote
+  def upvote
+    @queue_item.increment!(:vote_score)
+
+    respond_to do |format|
+      format.html { redirect_to queue_path, notice: "Song upvoted!" }
+      format.json { render json: { vote_score: @queue_item.vote_score }, status: :ok }
+    end
+  end
+
+  # POST /queue_items/:id/downvote
+  def downvote
+    @queue_item.decrement!(:vote_score)
+
+    respond_to do |format|
+      format.html { redirect_to queue_path, notice: "Song downvoted!" }
+      format.json { render json: { vote_score: @queue_item.vote_score }, status: :ok }
+    end
+  end
+
+  # PATCH /queue_items/:id/vote
   def vote
-    qi = QueueItem.find(params[:id])
-    delta = params[:delta].to_i
-    qi.vote!(delta)
-    render json: { id: qi.id, votes: qi.vote_count }, status: :ok
+    direction = params[:direction]
+
+    case direction
+    when "up"
+      @queue_item.update_column(:vote_score, (@queue_item.vote_score || 0) + 1)
+    when "down"
+      @queue_item.update_column(:vote_score, (@queue_item.vote_score || 0) - 1)
+    else
+      respond_to do |format|
+        format.html { redirect_back fallback_location: queue_path, alert: "Invalid vote direction." }
+        format.json { render json: { error: "Invalid direction" }, status: :unprocessable_entity }
+      end
+      return
+    end
+
+    respond_to do |format|
+      format.html { redirect_back fallback_location: queue_path, notice: "Vote recorded!" }
+      format.json { render json: { vote_score: @queue_item.vote_score }, status: :ok }
+    end
+  end
+
+  # DELETE /queue_items/:id
+  def destroy
+    @queue_item.destroy
+
+    respond_to do |format|
+      format.html { redirect_to queue_path, notice: "Song removed from queue." }
+      format.json { render json: { success: true, message: "Song removed" }, status: :ok }
+    end
   end
 
   private
 
-  def queue_item_params
-    params.require(:queue_item).permit(:song_id, :queue_session_id, :base_price)
+  def set_queue_item
+    @queue_item = QueueItem.find(params[:id])
+  end
+
+  def current_queue_session
+    QueueSession.where(is_active: true).first || 
+    QueueSession.first || 
+    create_default_session
+  end
+
+  def create_default_session
+    venue = Venue.first || Venue.create!(name: "Default Venue")
+    QueueSession.create!(venue: venue, is_active: true)
   end
 end

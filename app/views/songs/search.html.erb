@@ -1,0 +1,234 @@
+<!-- app/views/songs/search.html.erb -->
+
+<div class="search-page-wrapper" style="max-width:600px;margin:2rem auto;color:#fff;font-family:-apple-system, BlinkMacSystemFont, 'Inter', sans-serif;">
+  <h1 style="font-size:1.25rem;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;">
+    <span style="display:inline-block;padding:0.4rem 0.6rem;background:#1db954;color:#000;border-radius:0.5rem;font-size:0.8rem;font-weight:600;line-height:1;">Queue</span>
+    <span>Search music</span>
+  </h1>
+
+  <!-- Search form -->
+  <form action="/search" method="get" style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+    <input
+      type="text"
+      name="q"
+      value="<%= h @query %>"
+      placeholder="Search artist, song, vibe..."
+      style="flex:1;
+             background:#1a1a1a;
+             border:1px solid #333;
+             border-radius:0.75rem;
+             padding:0.8rem 1rem;
+             color:#fff;
+             font-size:0.9rem;
+             outline:none;"
+      autofocus
+    />
+    <button
+      type="submit"
+      style="background:#1db954;
+             border:none;
+             border-radius:0.75rem;
+             color:#000;
+             font-weight:600;
+             padding:0 1rem;
+             font-size:0.9rem;
+             cursor:pointer;">
+      Search
+    </button>
+  </form>
+
+  <% if @results.present? %>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+      <% @results.each_with_index do |track, idx| %>
+        <div style="
+          display:flex;
+          align-items:center;
+          background:#0f0f0f;
+          border:1px solid #222;
+          border-radius:1rem;
+          padding:0.75rem 1rem;
+          box-shadow:0 16px 40px rgba(0,0,0,0.8);
+          position:relative;
+        ">
+          <!-- Cover -->
+          <div style="width:56px;height:56px;border-radius:0.75rem;overflow:hidden;background:#222;flex-shrink:0;">
+            <% if track[:cover_url].present? %>
+              <img src="<%= track[:cover_url] %>" alt="<%= track[:title] %> cover art"
+                style="width:56px;height:56px;object-fit:cover;display:block;" />
+            <% else %>
+              <div style="color:#555;font-size:0.7rem;display:flex;align-items:center;justify-content:center;width:56px;height:56px;">
+                no art
+              </div>
+            <% end %>
+          </div>
+
+          <!-- Text -->
+          <div style="flex:1;min-width:0;padding:0 0.75rem;">
+            <div style="display:flex;align-items:center;gap:0.4rem;justify-content:space-between;">
+              <div style="font-size:0.9rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">
+                <%= track[:title] %>
+              </div>
+              <% if track[:duration_ms] %>
+                <% total_seconds = (track[:duration_ms].to_i / 1000) %>
+                <% minutes = total_seconds / 60 %>
+                <% seconds = total_seconds % 60 %>
+                <div style="font-size:0.7rem;color:#888;flex-shrink:0;">
+                  <%= minutes %>:<%= seconds.to_s.rjust(2,"0") %>
+                </div>
+              <% end %>
+            </div>
+            <div style="font-size:0.8rem;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">
+              <%= track[:artist] %>
+            </div>
+
+            <% if track[:preview_url].present? %>
+              <div style="margin-top:0.4rem;font-size:0.7rem;color:#1db954;display:flex;align-items:center;gap:0.4rem;">
+                <div style="width:6px;height:6px;border-radius:999px;background:#1db954;"></div>
+                30s preview available
+              </div>
+            <% else %>
+              <div style="margin-top:0.4rem;font-size:0.7rem;color:#555;display:flex;align-items:center;gap:0.4rem;">
+                <div style="width:6px;height:6px;border-radius:999px;background:#555;"></div>
+                no preview available
+              </div>
+            <% end %>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.5rem;min-width:90px;">
+            <!-- Play / Stop -->
+            <button
+              type="button"
+              data-preview="<%= track[:preview_url] %>"
+              data-audio-id="audio-<%= idx %>"
+              class="preview-btn"
+              style="
+                width:80px;
+                background:#1a1a1a;
+                border:1px solid #333;
+                border-radius:0.6rem;
+                color:#fff;
+                font-size:0.7rem;
+                padding:0.4rem 0.6rem;
+                cursor:pointer;
+                opacity:<%= track[:preview_url].present? ? 1 : 0.4 %>;
+              "
+              <%= track[:preview_url].present? ? "" : "disabled" %>
+            >
+              ▶ Preview
+            </button>
+
+            <!-- Add to Queue form -->
+            <form action="/queue_items" method="post" style="margin:0;">
+              <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+              <input type="hidden" name="spotify_id" value="<%= track[:spotify_id] %>" />
+              <input type="hidden" name="title" value="<%= track[:title] %>" />
+              <input type="hidden" name="artist" value="<%= track[:artist] %>" />
+              <input type="hidden" name="cover_url" value="<%= track[:cover_url] %>" />
+              <input type="hidden" name="duration_ms" value="<%= track[:duration_ms] %>" />
+              <input type="hidden" name="preview_url" value="<%= track[:preview_url] %>" />
+              <input type="hidden" name="user_display_name" value="Guest" />
+
+              <button
+                type="submit"
+                style="
+                  width:80px;
+                  background:#1db954;
+                  border:none;
+                  border-radius:0.6rem;
+                  color:#000;
+                  font-size:0.7rem;
+                  font-weight:600;
+                  padding:0.4rem 0.6rem;
+                  cursor:pointer;
+                ">
+                + Queue
+              </button>
+            </form>
+          </div>
+
+          <!-- hidden audio element dedicated to this row -->
+          <audio id="audio-<%= idx %>" preload="none" src="<%= track[:preview_url] %>"></audio>
+        </div>
+      <% end %>
+    </div>
+
+    <div style="margin-top:2rem;text-align:center;">
+      <a href="/queue" style="color:#1db954;font-size:0.9rem;text-decoration:none;font-weight:500;">
+        View Live Queue ⟶
+      </a>
+    </div>
+  <% else %>
+    <% if @query.present? %>
+      <div style="color:#777;font-size:0.9rem;text-align:center;margin-top:2rem;">
+        No results found. Try another search.
+      </div>
+    <% else %>
+      <div style="color:#777;font-size:0.9rem;text-align:center;margin-top:2rem;">
+        Try searching for "drake", "party mix", "house", etc.
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+<script>
+// Lightweight audio controller - ensures only one preview plays at a time
+(function() {
+  let currentAudioEl = null;
+  let currentBtnEl = null;
+
+  function stopCurrentAudio() {
+    if (currentAudioEl) {
+      currentAudioEl.pause();
+      currentAudioEl.currentTime = 0;
+    }
+    if (currentBtnEl) {
+      currentBtnEl.textContent = "▶ Preview";
+    }
+    currentAudioEl = null;
+    currentBtnEl = null;
+  }
+
+  document.querySelectorAll(".preview-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      const audioId = btn.getAttribute("data-audio-id");
+      const audioEl = document.getElementById(audioId);
+
+      // If this row is already playing, stop it
+      if (currentAudioEl === audioEl) {
+        stopCurrentAudio();
+        return;
+      }
+
+      // Otherwise stop anything else first
+      stopCurrentAudio();
+
+      // Now start this one (if it has a source)
+      if (audioEl && audioEl.src) {
+        currentAudioEl = audioEl;
+        currentBtnEl = btn;
+
+        btn.textContent = "■ Stop";
+        audioEl.volume = 1.0;
+        
+        audioEl.play().catch(function(err) {
+          console.error("Preview play failed:", err);
+          stopCurrentAudio();
+          alert("Couldn't play preview. Check browser autoplay policy.");
+        });
+
+        audioEl.onended = function() {
+          stopCurrentAudio();
+        };
+      } else {
+        alert("No preview available for this track.");
+      }
+    });
+  });
+
+  // Clean up on page unload
+  window.addEventListener("beforeunload", function() {
+    stopCurrentAudio();
+  });
+})();
+</script>
