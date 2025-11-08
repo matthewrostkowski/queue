@@ -4,10 +4,36 @@ class SongsController < ApplicationController
 
   def search
     @query = params[:q]
-    @results = []
-
-    if @query.present?
-      @results = search_deezer(@query)
+    
+    respond_to do |format|
+      format.html do
+        @results = []
+        if @query.present?
+          @results = search_deezer(@query)
+        end
+      end
+      format.json do
+        if @query.present?
+          # Search in database first
+          results = Song.where("LOWER(title) LIKE ? OR LOWER(artist) LIKE ?", 
+                               "%#{@query.downcase}%", "%#{@query.downcase}%")
+                        .limit(5)
+                        .map do |song|
+            {
+              id: song.id,
+              spotify_id: song.spotify_id,
+              title: song.title,
+              artist: song.artist,
+              cover_url: song.cover_url,
+              duration_ms: song.duration_ms,
+              preview_url: song.preview_url
+            }
+          end
+          render json: { results: results }
+        else
+          render json: { results: [] }
+        end
+      end
     end
   end
 
@@ -22,13 +48,11 @@ class SongsController < ApplicationController
   private
 
   def search_deezer(query)
-    # Deezer API - no authentication needed!
     uri = URI("https://api.deezer.com/search")
     uri.query = URI.encode_www_form({ q: query, limit: 20 })
 
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
-    # Fix for macOS SSL certificate issues in development
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE if Rails.env.development?
     
     request = Net::HTTP::Get.new(uri.request_uri)
@@ -40,12 +64,12 @@ class SongsController < ApplicationController
       
       tracks.map do |track|
         {
-          spotify_id: track['id'].to_s, # Using Deezer ID
+          spotify_id: track['id'].to_s,
           title: track['title'],
           artist: track.dig('artist', 'name'),
           cover_url: track.dig('album', 'cover_medium') || track.dig('album', 'cover_big'),
-          duration_ms: (track['duration'] * 1000).to_i, # Deezer gives seconds
-          preview_url: track['preview'] # 30-second preview URL
+          duration_ms: (track['duration'] * 1000).to_i,
+          preview_url: track['preview']
         }
       end
     else
