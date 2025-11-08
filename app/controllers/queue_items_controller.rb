@@ -21,23 +21,54 @@ class QueueItemsController < ApplicationController
 
   # POST /queue_items
   def create
-    queue_item_params = parse_queue_item_params
-    
-    qi = QueueItem.new(
-      song_id: queue_item_params[:song_id],
-      queue_session_id: queue_item_params[:queue_session_id],
-      user: current_user,
-      base_price_cents: (queue_item_params[:base_price].to_f * 100).to_i,
-      vote_count: 0,
-      vote_score: 0,
-      base_priority: 0,
-      status: 'pending'
-    )
+    # Handle both search form params and structured queue_item params
+    if params[:queue_item].present?
+      queue_item_params = parse_queue_item_params
+      
+      qi = QueueItem.new(
+        song_id: queue_item_params[:song_id],
+        queue_session_id: queue_item_params[:queue_session_id],
+        user: current_user,
+        base_price_cents: (queue_item_params[:base_price].to_f * 100).to_i,
+        vote_count: 0,
+        vote_score: 0,
+        base_priority: 0,
+        status: 'pending'
+      )
+    else
+      # Handle search form params (spotify_id, title, artist, etc.)
+      song = Song.find_or_create_by(spotify_id: params[:spotify_id]) do |s|
+        s.title = params[:title]
+        s.artist = params[:artist]
+        s.cover_url = params[:cover_url]
+        s.duration_ms = params[:duration_ms]
+        s.preview_url = params[:preview_url]
+      end
+
+      queue_session = current_queue_session
+
+      qi = QueueItem.new(
+        song: song,
+        queue_session: queue_session,
+        user: current_user,
+        base_price_cents: 399,
+        vote_count: 0,
+        vote_score: 0,
+        base_priority: 0,
+        status: 'pending'
+      )
+    end
     
     if qi.save
-      render json: format_queue_item(qi), status: :created
+      respond_to do |format|
+        format.html { redirect_to queue_path, notice: "Song added to queue!" }
+        format.json { render json: format_queue_item(qi), status: :created }
+      end
     else
-      render json: { errors: qi.errors.full_messages }, status: :unprocessable_entity
+      respond_to do |format|
+        format.html { redirect_to search_path, alert: qi.errors.full_messages.first }
+        format.json { render json: { errors: qi.errors.full_messages }, status: :unprocessable_entity }
+      end
     end
   end
 
@@ -98,6 +129,17 @@ class QueueItemsController < ApplicationController
     else
       params.require(:queue_item).permit(:song_id, :queue_session_id, :base_price)
     end
+  end
+
+  def current_queue_session
+    QueueSession.where(is_active: true).first || 
+    QueueSession.first || 
+    create_default_session
+  end
+
+  def create_default_session
+    venue = Venue.first || Venue.create!(name: "Default Venue")
+    QueueSession.create!(venue: venue, is_active: true)
   end
 
   def format_queue_item(qi)

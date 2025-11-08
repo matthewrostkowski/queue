@@ -8,8 +8,8 @@ Rails.application.routes.draw do
   # Songs/Search
   get "/search", to: "songs#search"
   get "/songs", to: "songs#index"
+  get "/songs/search", to: "songs#search"
   get "/songs/:id", to: "songs#show"
-  get "songs/search", to: "songs#search"
 
   # User signup and summary
   get  "/signup", to: "users#new",    as: :signup

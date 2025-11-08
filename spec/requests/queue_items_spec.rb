@@ -3,6 +3,9 @@ require "rails_helper"
 RSpec.describe "QueueItems", type: :request do
   let!(:venue)   { Venue.create!(name: "V") }
   let!(:session) { QueueSession.create!(venue: venue, is_active: true) }
+  let!(:user)    { User.create!(display_name: "TestUser", auth_provider: "guest") }
+
+  before { login_as(user) }
 
   it "creates an item from the search form params" do
     params = {
@@ -21,21 +24,21 @@ RSpec.describe "QueueItems", type: :request do
   end
 
   it "upvotes and returns the new score" do
-    qi = QueueItem.create!(queue_session: session, title: "Test", artist: "Artist", vote_score: 2)
+    qi = QueueItem.create!(queue_session: session, user: user, title: "Test", artist: "Artist", vote_score: 2)
     post "/queue_items/#{qi.id}/upvote", as: :json
     expect(response).to have_http_status(:ok)
     expect(JSON.parse(response.body)["vote_score"]).to eq(3)
   end
 
   it "downvotes and returns the new score" do
-    qi = QueueItem.create!(queue_session: session, title: "Test", artist: "Artist", vote_score: 2)
+    qi = QueueItem.create!(queue_session: session, user: user, title: "Test", artist: "Artist", vote_score: 2)
     post "/queue_items/#{qi.id}/downvote", as: :json
     expect(response).to have_http_status(:ok)
     expect(JSON.parse(response.body)["vote_score"]).to eq(1)
   end
 
   it "destroys a queue item" do
-    qi = QueueItem.create!(queue_session: session, title: "Song", artist: "Artist")
+    qi = QueueItem.create!(queue_session: session, user: user, title: "Song", artist: "Artist")
     delete "/queue_items/#{qi.id}", as: :json
     expect(response).to have_http_status(:ok)
     expect(QueueItem.exists?(qi.id)).to be(false)
