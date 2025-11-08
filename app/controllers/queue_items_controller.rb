@@ -101,7 +101,7 @@ class QueueItemsController < ApplicationController
     @queue_item.vote_score = (@queue_item.vote_score || 0) + delta
     
     if @queue_item.save
-      render json: { vote_count: @queue_item.vote_count, vote_score: @queue_item.vote_score }, status: :ok
+      render json: { votes: @queue_item.vote_count }, status: :ok
     else
       render json: { error: "Could not update vote" }, status: :unprocessable_entity
     end

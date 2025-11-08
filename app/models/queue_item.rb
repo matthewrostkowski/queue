@@ -15,10 +15,10 @@ class QueueItem < ApplicationRecord
   # Set defaults
   before_validation :set_defaults, on: :create
   
-  # Scopes
+  # Scopes - order by vote_count first, then vote_score as tiebreaker
   scope :unplayed, -> { where(status: 'pending') }
   scope :played, -> { where(status: 'played') }
-  scope :by_votes, -> { order(vote_score: :desc, created_at: :asc) }
+  scope :by_votes, -> { order(vote_count: :desc, base_priority: :asc, created_at: :asc) }
   
   # Override attribute readers to check both song and direct attributes
   def title
