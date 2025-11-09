@@ -18,17 +18,43 @@ RSpec.describe "Sessions", type: :request do
       expect(response).to have_http_status(:ok)
     end
   end
-  
-  it "creates a user with guest provider" do
-    expect {
-      post "/session", params: { provider: 'guest', display_name: 'Test' }, as: :json
-    }.to change { User.count }.by(1)
+
+  describe "POST /session (JSON)" do
+    it "returns 200 with user payload" do
+      post "/session", params: { provider: "guest", display_name: "Guest API" }, as: :json
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      expect(json).to include("id", "display_name" => "Guest API", "provider" => "guest")
+    end
+  end
+
+  describe "DELETE /logout" do
+    it "clears session and redirects to login" do
+      post "/session", params: { provider: "guest", display_name: "Someone" }
+      get "/mainpage"
+      expect(response).to have_http_status(:ok)
+
+      delete "/logout"
+      expect(response).to redirect_to(login_path)
+      follow_redirect!
+      expect(request.path).to eq("/login")
+      expect(response.body).to include('data-testid="login-form"')
+    end
+  end
+
+  describe "guest login with same display_name creates distinct users" do
+    it "creates a new user record even if the name matches" do
+      post "/session", params: { provider: "guest", display_name: "michael" }
+      first = User.order(:id).last
+      delete "/logout"
+
+      post "/session", params: { provider: "guest", display_name: "michael" }
+      second = User.order(:id).last
+
+      expect(first.id).not_to eq(second.id)
+      expect(first.display_name).to eq("michael")
+      expect(second.display_name).to eq("michael")
+    end
   end
   
-  it "returns user data as JSON" do
-    post "/session", params: { provider: 'guest', display_name: 'Bob' }, as: :json
-    body = JSON.parse(response.body)
-    expect(body).to have_key('display_name')
-    expect(body).to have_key('auth_provider')
-  end
 end

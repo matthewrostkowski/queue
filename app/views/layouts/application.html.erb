@@ -28,12 +28,16 @@
 
       <% if current_user %>
         <nav>
-          <%= link_to "Main", root_path %>
-          <%= link_to "Queue", queue_path %>
+          <%= link_to "Main",   mainpage_path %>
+          <%= link_to "Scan",   scan_path %>
           <%= link_to "Search", search_path %>
+          <%= link_to "Profile", profile_path %>
         </nav>
         <div style="display:flex;gap:12px;align-items:center">
           <span id="current-user"><%= current_user.display_name %></span>
+          <%= button_to "Logout", logout_path, method: :delete,
+                class: "btn secondary",
+                form: { style: "display:inline" } %>
         </div>
       <% else %>
         <nav>
@@ -49,5 +53,6 @@
     <% end %>
 
     <%= yield %>
-  </body>
+  </div>
+</body>
 </html>

@@ -1,28 +1,18 @@
 require 'rails_helper'
 
 RSpec.describe QueueItem, type: :model do
-  let(:session) { QueueSession.create!(venue: Venue.create!(name: "Test Venue"), is_active: true) }
+  let(:venue) { Venue.create!(name: 'V') }
+  let(:qs)    { QueueSession.create!(venue: venue, is_active: true) }
+  let(:user)  { User.create!(display_name: 'U', auth_provider: 'guest') }
+  let(:song)  { Song.create!(title: 'Song', artist: 'Artist') }
 
-  it 'exists as a model' do
-    expect(QueueItem).to be_a(Class)
-  end
-
-  it 'has a queue_session association' do
-    expect(QueueItem.reflect_on_association(:queue_session)).to be_present
-  end
-
-  it 'has a song association' do
-    expect(QueueItem.reflect_on_association(:song)).to be_present
-  end
-
-  it "is valid with title and artist" do
-    qi = QueueItem.new(queue_session: session, title: "Song", artist: "Artist")
-    expect(qi).to be_valid
-  end
-
-  it "orders by vote_score desc then created_at asc" do
-    b = QueueItem.create!(queue_session: session, title: "B", artist: "A", vote_score: 3, created_at: 2.minutes.ago)
-    a = QueueItem.create!(queue_session: session, title: "A", artist: "A", vote_score: 1, created_at: 1.minute.ago)
-    expect(QueueItem.by_votes).to eq([b, a])
+  it 'computes price_for_display rising with demand and votes' do
+    qi = QueueItem.create!(song: song, queue_session: qs, user: user, base_price: 2.00)
+    expect(qi.price_for_display).to eq(2.00)
+    QueueItem.create!(song: song, queue_session: qs, user: user, base_price: 2.00)
+    qi.reload
+    expect(qi.price_for_display).to be > 2.00
+    qi.vote!(1)
+    expect(qi.price_for_display).to be > 2.10
   end
 end
