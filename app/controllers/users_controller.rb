@@ -6,10 +6,6 @@ class UsersController < ApplicationController
     @user = User.new
   end
 
-  def show
-    @user = current_user
-  end
-
   def create
     @user = User.new(user_params.merge(auth_provider: "general_user"))
     @user.display_name = @user.display_name.presence || @user.email.to_s.split("@").first

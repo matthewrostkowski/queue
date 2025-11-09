@@ -1,73 +1,19 @@
 class QueueItem < ApplicationRecord
+  belongs_to :song
   belongs_to :queue_session
-  belongs_to :song, optional: true
-  belongs_to :user, optional: true
+  belongs_to :user
 
-  # Validations
-  validates :status, inclusion: { in: %w[pending playing played] }, allow_nil: true
-  
-  # Make base_price_cents optional for test scenarios
-  validates :base_price_cents, numericality: { greater_than: 0 }, allow_nil: true
-  
-  # Validate that we have either a song OR direct title/artist
-  validate :must_have_song_or_title_artist, on: :create
-  
-  # Set defaults
-  before_validation :set_defaults, on: :create
-  
-  # Scopes - order by vote_count first, then vote_score as tiebreaker
-  scope :unplayed, -> { where(status: 'pending') }
-  scope :played, -> { where(status: 'played') }
-  scope :by_votes, -> { order(vote_count: :desc, base_priority: :asc, created_at: :asc) }
-  
-  # Override attribute readers to check both song and direct attributes
-  def title
-    read_attribute(:title) || song&.title
+  validates :song, :queue_session, :user, presence: true
+  validates :base_price, presence: true, numericality: { greater_than: 0 }
+
+  def price_for_display
+    demand = QueueItem.where(queue_session_id: queue_session_id, song_id: song_id, status: 'pending').count
+    multiplier = 1.0 + (demand - 1) * 0.10 + (vote_count * 0.05)
+    (base_price * multiplier).round(2)
   end
-  
-  def artist
-    read_attribute(:artist) || song&.artist
-  end
-  
-  def preview_url
-    read_attribute(:preview_url) || song&.preview_url
-  end
-  
-  def cover_url
-    song&.cover_url
-  end
-  
-  def duration_ms
-    song&.duration_ms
-  end
-  
-  def spotify_id
-    song&.spotify_id
-  end
-  
-  # Helper method to work with dollars
-  def base_price
-    return 0 if base_price_cents.nil?
-    base_price_cents / 100.0
-  end
-  
-  def base_price=(dollars)
-    self.base_price_cents = (dollars.to_f * 100).to_i
-  end
-  
-  private
-  
-  def set_defaults
-    self.base_price_cents ||= 0
-    self.vote_count ||= 0
-    self.vote_score ||= 0
-    self.base_priority ||= 0
-    self.status ||= 'pending'
-  end
-  
-  def must_have_song_or_title_artist
-    if song_id.blank? && (read_attribute(:title).blank? || read_attribute(:artist).blank?)
-      errors.add(:base, "Must have either a song or title/artist")
-    end
+
+  def vote!(delta)
+    self.vote_count = [0, vote_count + delta].max
+    save!
   end
 end

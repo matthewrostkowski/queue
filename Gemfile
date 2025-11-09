@@ -1,32 +1,26 @@
 source "https://rubygems.org"
-ruby "3.3.8"
+ruby "3.3.4"
 
 gem "rails", "8.0"
-gem "puma", "~> 6.6"
-gem "faraday"
-gem "dotenv-rails", groups: [:development, :test]
+gem "puma",  "~> 6.6"
 
 # Timezone helpers (from course list)
 gem "tzinfo"
 gem "tzinfo-data", platforms: [:mingw, :mswin, :x64_mingw]
 
-# Faster boot
-gem "bootsnap", require: false
-
-# --- Development & Test ---
 group :development, :test do
   gem "byebug"
-  gem "listen", "~> 3.8"
+  gem "listen",       "~> 3.8"
+  gem "guard-rspec",  "~> 4.7"
 
   # Testing stack
   gem "rspec-rails"
   gem "cucumber-rails", require: false
   gem "capybara", "~> 3.40"
-  gem "selenium-webdriver"
   gem "database_cleaner-active_record"
   gem 'shoulda-matchers', '~> 5.0'
   gem "simplecov", "~> 0.22", require: false
-  gem "guard-rspec", "~> 4.7"
+  gem "webmock",   "~> 3.23"
 
   # Request helpers
   gem "rack-test", "~> 2.1"
@@ -35,13 +29,6 @@ group :development, :test do
   gem "sqlite3", "~> 2.1"
 end
 
-# --- Test only ---
-group :test do
-  gem "webmock", "~> 3.23"
-  # gem "webdrivers" # uncomment only if you need it for ChromeDriver mgmt
-end
-
-# --- Production ---
 group :production do
   gem "pg", "~> 1.1"
 end

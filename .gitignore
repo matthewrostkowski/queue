@@ -15,7 +15,7 @@ Thumbs.db
 /.env.*.local
 /config/master.key
 /config/credentials/*.key
-/.env
+
 # --- Logs / temp --------------------------------------------------------------
 /log/*
 /tmp/*
