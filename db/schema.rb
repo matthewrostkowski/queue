@@ -10,12 +10,12 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_08_084907) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_09_210558) do
   create_table "queue_items", force: :cascade do |t|
     t.integer "song_id"
     t.integer "queue_session_id", null: false
     t.integer "user_id"
-    t.integer "base_price_cents", default: 100, null: false
+    t.decimal "base_price", precision: 8, scale: 2
     t.integer "vote_count", default: 0, null: false
     t.integer "base_priority", default: 0, null: false
     t.string "status", default: "pending", null: false
@@ -31,6 +31,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_08_084907) do
     t.string "artist"
     t.string "spotify_id"
     t.string "preview_url"
+    t.integer "base_price_cents", default: 100, null: false
     t.index ["played_at"], name: "index_queue_items_on_played_at"
     t.index ["queue_session_id"], name: "index_queue_items_on_queue_session_id"
     t.index ["song_id"], name: "index_queue_items_on_song_id"
@@ -40,15 +41,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_08_084907) do
   create_table "queue_sessions", force: :cascade do |t|
     t.integer "venue_id", null: false
     t.boolean "is_active", default: true, null: false
-    t.datetime "started_at"
-    t.datetime "ended_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "currently_playing_id"
     t.boolean "is_playing", default: false
     t.datetime "playback_started_at"
     t.index ["currently_playing_id"], name: "index_queue_sessions_on_currently_playing_id"
-    t.index ["venue_id", "is_active"], name: "index_queue_sessions_on_venue_id_and_is_active"
+    t.index ["venue_id"], name: "index_queue_sessions_on_venue_id"
   end
 
   create_table "songs", force: :cascade do |t|
@@ -56,15 +55,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_08_084907) do
     t.string "artist", null: false
     t.string "spotify_id"
     t.string "cover_url"
-    t.integer "duration_ms"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "duration_ms"
     t.string "preview_url"
   end
 
   create_table "users", force: :cascade do |t|
     t.string "display_name", null: false
-    t.string "auth_provider"
+    t.string "auth_provider", null: false
     t.string "access_token"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -75,9 +74,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_08_084907) do
   create_table "venues", force: :cascade do |t|
     t.string "name", null: false
     t.string "location"
+    t.integer "capacity"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.integer "capacity"
   end
 
   add_foreign_key "queue_items", "queue_sessions"
