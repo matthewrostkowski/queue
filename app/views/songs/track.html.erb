@@ -1,0 +1,134 @@
+<div class="track-item">
+  <div class="track-cover" style="background-image: url('<%= track[:cover_url] %>');"></div>
+  
+  <div class="track-info">
+    <div class="track-title"><%= track[:title] %></div>
+    <div class="track-artist"><%= track[:artist] %></div>
+  </div>
+
+  <div class="track-actions">
+    <% if track[:preview_url].present? %>
+      <button class="btn-preview" data-preview-url="<%= track[:preview_url] %>">
+        ▶️ Preview
+      </button>
+    <% end %>
+
+    <%= button_to "Add to Queue", queue_items_path, 
+          method: :post,
+          params: { 
+            spotify_id: track[:spotify_id],
+            title: track[:title],
+            artist: track[:artist],
+            cover_url: track[:cover_url],
+            duration_ms: track[:duration_ms],
+            preview_url: track[:preview_url]
+          },
+          class: "btn-add-queue" %>
+  </div>
+</div>
+
+<style>
+.track-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: #0a0a0a;
+  border: 1px solid #2D2D2D;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.track-cover {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.track-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.track-title {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-artist {
+  color: #9CA3AF;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-preview, .btn-add-queue {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-preview {
+  background: #444;
+  color: #fff;
+}
+
+.btn-preview:hover {
+  background: #555;
+}
+
+.btn-add-queue {
+  background: #1DB954;
+  color: #fff;
+}
+
+.btn-add-queue:hover {
+  background: #1ed760;
+}
+</style>
+
+<script>
+// Preview button functionality
+document.addEventListener('DOMContentLoaded', function() {
+  let currentAudio = null;
+  
+  document.querySelectorAll('.btn-preview').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const previewUrl = this.dataset.previewUrl;
+      
+      // Stop previous audio
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+      }
+      
+      // Play new audio
+      if (previewUrl) {
+        currentAudio = new Audio(previewUrl);
+        currentAudio.play();
+        this.textContent = '⏸️ Stop';
+        
+        currentAudio.addEventListener('ended', () => {
+          this.textContent = '▶️ Preview';
+        });
+      }
+    });
+  });
+});
+</script>
