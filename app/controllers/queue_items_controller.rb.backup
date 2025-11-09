@@ -1,0 +1,79 @@
+class QueueItemsController < ApplicationController
+  before_action :set_queue_item, only: [:show, :destroy, :upvote, :downvote]
+
+  def index
+    @queue_items = QueueItem.where(played_at: nil).order(vote_score: :desc)
+  end
+
+  def show
+  end
+
+  def create
+    @queue_item = QueueItem.new(queue_item_params)
+    @queue_item.queue_session_id = current_queue_session.id
+    @queue_item.vote_score ||= 0
+
+    Rails.logger.info "=== Attempting to save QueueItem ==="
+    Rails.logger.info "Params: #{queue_item_params.inspect}"
+    Rails.logger.info "Queue Session ID: #{current_queue_session.id}"
+    Rails.logger.info "Vote Score: #{@queue_item.vote_score}"
+
+    if @queue_item.save
+      Rails.logger.info "✅ Successfully saved!"
+      redirect_to queue_path, notice: "Song added to queue!"
+    else
+      Rails.logger.error "❌ Failed to save!"
+      Rails.logger.error "Errors: #{@queue_item.errors.full_messages.inspect}"
+      flash[:alert] = "Failed to add song: #{@queue_item.errors.full_messages.join(', ')}"
+      redirect_to search_path(q: params[:q])
+    end
+  end
+
+  def destroy
+    @queue_item.destroy
+    redirect_to queue_items_path, notice: "Song removed from queue."
+  end
+
+  def upvote
+    @queue_item.increment!(:vote_score)
+    
+    respond_to do |format|
+      format.html { redirect_to queue_path }
+      format.json { render json: { vote_score: @queue_item.vote_score, id: @queue_item.id } }
+    end
+  end
+
+  def downvote
+    @queue_item.decrement!(:vote_score)
+    
+    respond_to do |format|
+      format.html { redirect_to queue_path }
+      format.json { render json: { vote_score: @queue_item.vote_score, id: @queue_item.id } }
+    end
+  end
+
+  private
+
+  def set_queue_item
+    @queue_item = QueueItem.find(params[:id])
+  end
+
+  def queue_item_params
+    params.permit(
+      :spotify_id,
+      :title,
+      :artist,
+      :cover_url,
+      :duration_ms,
+      :preview_url,
+      :user_display_name
+    )
+  end
+
+  def current_queue_session
+    @current_queue_session ||= QueueSession.first_or_create!(
+      name: "Main Queue",
+      is_active: true
+    )
+  end
+end
