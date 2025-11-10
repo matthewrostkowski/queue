@@ -1,9 +1,12 @@
 Rails.application.routes.draw do
+
+  get  "/login", to: "login#index", as: :login
+  root to: redirect("/login")
   # Prevent /favicon.ico from failing scenarios
   get "/favicon.ico", to: ->(_env) { [204, { "Content-Type" => "image/x-icon" }, []] }
 
   # Root route
-  root "songs#search"
+  #root "songs#search"
 
   # Songs/Search
   get "/search", to: "songs#search"
@@ -17,14 +20,12 @@ Rails.application.routes.draw do
   get  "/users/:id/summary", to: "users#summary", as: :user_summary
   
   # User authentication
-  get    "/profile", to: "users#show", as: "profile"
+  get    "/profile", to: "profiles#show", as: "profile"
   delete "/logout",  to: "sessions#destroy", as: "logout"
 
   # Session management
   post "/session", to: "sessions#create", as: :session
   
-  # Login routes
-  get  "/login", to: "login#index", as: :login
   
   # Main page
   get  "/mainpage", to: "main#index", as: :mainpage
