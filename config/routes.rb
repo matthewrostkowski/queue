@@ -1,32 +1,58 @@
 Rails.application.routes.draw do
-  # login / landing
+
   get  "/login", to: "login#index", as: :login
   root to: redirect("/login")
+  # Prevent /favicon.ico from failing scenarios
+  get "/favicon.ico", to: ->(_env) { [204, { "Content-Type" => "image/x-icon" }, []] }
 
-  # auth
-  post   "/session", to: "sessions#create",  as: :session
-  delete "/logout",  to: "sessions#destroy", as: :logout
+  # Root route
+  #root "songs#search"
 
-  # app pages
-  get "/mainpage", to: "main#index",  as: :mainpage
-  get "/scan",     to: "scan#index",  as: :scan
-  get "/search",   to: "search#index", as: :search
-  get "/profile",  to: "profiles#show", as: :profile
+  # Songs/Search
+  get "/search", to: "songs#search"
+  get "/songs", to: "songs#index"
+  get "/songs/search", to: "songs#search"
+  get "/songs/:id", to: "songs#show"
 
+  # User signup and summary
   get  "/signup", to: "users#new",    as: :signup
   post "/users",  to: "users#create", as: :users
   get  "/users/:id/summary", to: "users#summary", as: :user_summary
   
-  # queue management
-  post "/queue_items", to: "queue_items#create", as: :queue_items
+  # User authentication
+  get    "/profile", to: "profiles#show", as: "profile"
+  delete "/logout",  to: "sessions#destroy", as: "logout"
 
-  # Queue items JSON API
-  resources :queue_items, only: [:index, :create] do
+  # Session management
+  post "/session", to: "sessions#create", as: :session
+  
+  
+  # Main page
+  get  "/mainpage", to: "main#index", as: :mainpage
+  
+  # Scan route
+  get  "/scan", to: "scan#index", as: :scan
+
+  # Queue Items (voting on individual items)
+  resources :queue_items, only: [:index, :create, :show, :destroy] do
     member do
-      patch :vote   # /queue_items/:id/vote
+      patch :vote      # For general vote endpoint
+      post :upvote     # For upvote endpoint
+      post :downvote   # For downvote endpoint
     end
   end
 
-  get "songs/search", to: "songs#search"
+  # Queue/Playback (main queue controller)
+  resource :queue, only: [:show], controller: 'queues' do
+    post :start_playback
+    post :next_track
+    post :stop_playback
+    get :state
+  end
+
+  # Venues
   resources :venues, only: [:show]
+
+  # Health check
+  get "up" => "rails/health#show", as: :rails_health_check
 end
