@@ -1,6 +1,8 @@
 class SessionsController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:create, :destroy]
-  skip_before_action :set_current_user,   only: [:create]
+  skip_before_action :authenticate_user!, only: [:create, :destroy, :omniauth]
+  skip_before_action :set_current_user, only: [:create, :omniauth]
+  skip_forgery_protection only: [:omniauth]
+
   skip_forgery_protection if -> { request.format.json? }
 
   def create
@@ -44,5 +46,24 @@ class SessionsController < ApplicationController
       format.html { redirect_to login_path, status: :see_other, notice: "Signed out" }
       format.json { head :no_content }
     end
+  end
+
+  def omniauth
+    auth = request.env["omniauth.auth"]
+    return redirect_to(login_path, alert: "Google sign-in failed") if auth.blank?
+
+    email = auth.info&.email&.downcase
+    name  = auth.info&.name || "Google User"
+
+    user = User.find_or_initialize_by(auth_provider: "google_oauth2", email: email)
+    user.display_name ||= name
+    user.save!
+
+    reset_session
+    session[:user_id] = user.id
+    redirect_to mainpage_path, notice: "Welcome, #{user.display_name}"
+  rescue => e
+    Rails.logger.error("[omniauth] #{e.class}: #{e.message}")
+    redirect_to login_path, alert: "Google sign-in failed"
   end
 end

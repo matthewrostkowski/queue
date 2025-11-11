@@ -33,6 +33,9 @@ Rails.application.routes.draw do
   # Scan route
   get  "/scan", to: "scan#index", as: :scan
 
+  # google oauth2 callback
+  get "/auth/:provider/callback", to: "sessions#omniauth"
+  get "/auth/failure", to: redirect("/login")
   # Queue Items (voting on individual items)
   resources :queue_items, only: [:index, :create, :show, :destroy] do
     member do
