@@ -33,6 +33,11 @@ group :development, :test do
 
   # Dev/Test DB
   gem "sqlite3", "~> 2.1"
+
+  # Authentication
+  gem "omniauth", "~> 2.1"
+  gem "omniauth-rails_csrf_protection"
+  gem "omniauth-google-oauth2", "~> 1.1"
 end
 
 # --- Test only ---

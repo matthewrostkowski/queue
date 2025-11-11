@@ -69,6 +69,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_09_210558) do
     t.datetime "updated_at", null: false
     t.string "email"
     t.string "password_digest"
+    t.string "canonical_email"
+    t.index ["canonical_email"], name: "index_users_on_canonical_email_unique", unique: true, where: "canonical_email IS NOT NULL /*application='Queuemusic'*/"
   end
 
   create_table "venues", force: :cascade do |t|
