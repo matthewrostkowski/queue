@@ -1,4 +1,36 @@
-<h1>Scan</h1>
-<div data-testid="scan-page">
-  <p>QR scanning placeholder (camera to be integrated later).</p>
+<div class="card" style="max-width: 500px; margin: 50px auto; padding: 40px;">
+  <h1>Join a Queue</h1>
+  <p>Enter the venue's code to join their music queue</p>
+  
+  <%= form_with url: scan_path, method: :post, local: true do %>
+    <div style="margin: 24px 0;">
+      <input 
+        type="text" 
+        name="code" 
+        placeholder="Enter 6-digit code"
+        maxlength="6"
+        pattern="[0-9]{6}"
+        style="padding: 16px; font-size: 24px; text-align: center; letter-spacing: 4px; width: 100%; border: 2px solid var(--line); border-radius: 10px; font-family: monospace;"
+        autofocus
+        required
+      />
+    </div>
+    
+    <button type="submit" class="btn" style="width: 100%; padding: 16px;">
+      Join Queue
+    </button>
+  <% end %>
+  
+  <div style="margin-top: 24px; text-align: center;">
+    <p style="color: var(--muted); font-size: 14px;">
+      Don't have a code? Visit a venue to get one.
+    </p>
+    <%= link_to "Back to Main", mainpage_path, style: "color: var(--accent); text-decoration: none;" %>
+  </div>
+  <h1>Scan</h1>
+  <div data-testid="scan-page">
+    <p>QR scanning placeholder (camera to be integrated later).</p>
+  </div>
 </div>
+
+

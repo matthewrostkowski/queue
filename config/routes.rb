@@ -32,6 +32,7 @@ Rails.application.routes.draw do
   
   # Scan route
   get  "/scan", to: "scan#index", as: :scan
+  post "/scan", to: "scan#create"
 
   # Queue Items (voting on individual items)
   resources :queue_items, only: [:index, :create, :show, :destroy] do

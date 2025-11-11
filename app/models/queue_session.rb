@@ -15,6 +15,9 @@ class QueueSession < ApplicationRecord
 
   validates :venue, presence: true
 
+  before_create :generate_access_code
+  validates :access_code, uniqueness: true, allow_nil: true
+
   # Get the queue in priority order
   def ordered_queue
     queue_items
@@ -69,6 +72,17 @@ class QueueSession < ApplicationRecord
     else
       stop_playback!
       nil
+    end
+  end
+
+  private
+  
+  def generate_access_code
+    loop do
+      # Generate 6-digit code
+      self.access_code = SecureRandom.random_number(999999).to_s.rjust(6, '0')
+      # Break if code is unique
+      break unless QueueSession.exists?(access_code: access_code)
     end
   end
 end

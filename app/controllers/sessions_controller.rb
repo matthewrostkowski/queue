@@ -14,7 +14,7 @@ class SessionsController < ApplicationController
         reset_session
         session[:user_id] = user.id
         respond_to do |format|
-          format.html { redirect_to mainpage_path, notice: "Welcome back, #{user.display_name}" }
+          format.html { redirect_to after_sign_in_path, notice: "Welcome back, #{user.display_name}" }
           format.json { render json: { id: user.id, display_name: user.display_name, auth_provider: user.auth_provider }, status: :ok }
         end
       else
@@ -32,7 +32,7 @@ class SessionsController < ApplicationController
       session[:user_id] = user.id
 
       respond_to do |format|
-        format.html { redirect_to mainpage_path, notice: "Welcome, #{user.display_name}" }
+        format.html { redirect_to after_sign_in_path, notice: "Welcome, #{user.display_name}" }
         format.json { render json: { id: user.id, display_name: user.display_name, auth_provider: user.auth_provider }, status: :ok }
       end
     end
