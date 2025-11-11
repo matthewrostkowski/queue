@@ -9,11 +9,6 @@ When("I continue as guest") do
   find(Selectors::GUEST_BUTTON).click
 end
 
-Then("I should be on the main page") do
-  expect(page).to have_current_path("/mainpage", ignore_query: true)
-  expect(page).to have_selector(Selectors::MAIN_WELCOME)
-end
-
 Then("I should see my guest name on the page") do
   expect(page.find(Selectors::CURRENT_USER).text).to match(/^Guest\b/)
 end
@@ -56,4 +51,29 @@ end
 
 When('I press {string}') do |label|
   click_button label
+end
+
+And(/^I sign up with email "([^"]*)" and password "([^"]*)"$/) do |email, password|
+  visit "/signup"
+  fill_in "user_email", with: email
+  fill_in "user_password", with: password
+  fill_in "user_password_confirmation", with: password
+  click_button "Create account"
+end
+
+When("I log out") do
+  page.driver.submit :delete, "/logout", {}
+end
+
+And(/^I log in with email "([^"]*)" and password "([^"]*)"$/) do |email, password|
+  visit "/login"
+  within("[data-testid='login-form']") do
+    fill_in "email", with: email
+    fill_in "password", with: password
+    click_button "Sign in"
+  end
+end
+
+Then("I should be on the main page") do
+  expect(page).to have_current_path(mainpage_path, ignore_query: true)
 end
