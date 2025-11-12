@@ -28,6 +28,10 @@
 
       <% if current_user %>
         <nav>
+          <% if current_user&.admin? %>
+            <%= link_to "Admin Dashboard", admin_dashboard_path, class: "admin-link" %>
+            <%= link_to "Manage Users", admin_users_path, class: "admin-link" %>
+          <% end %>
           <%= link_to "Main", root_path %>
           <%= link_to "Scan",   scan_path %>
           <%= link_to "Queue", queue_path %>
