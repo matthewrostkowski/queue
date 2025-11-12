@@ -54,6 +54,18 @@ Rails.application.routes.draw do
     get :state
   end
 
+  #Admin
+  namespace :admin do
+  get "dashboard", to: "dashboard#index"
+  resources :users, only: [:index] do
+    member do
+      patch :promote_to_host
+      patch :promote_to_admin
+      patch :demote
+    end
+  end
+end
+
   # Venues
   resources :venues, only: [:show]
 
