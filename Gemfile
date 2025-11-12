@@ -54,3 +54,6 @@ end
 
 gem "bootsnap", require: false
 gem "bcrypt", "~> 3.1"
+
+# TODO: Move from CDN to tailwindcss-rails build once asset pipeline is set up
+# gem "tailwindcss-rails", "~> 4.4"
