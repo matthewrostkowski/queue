@@ -14,6 +14,8 @@ class QueuesController < ApplicationController
     @now_playing = @queue_session.queue_items
                                   .includes(:song)
                                   .find_by(is_currently_playing: true)
+                          
+    @access_code = @queue_session.access_code
 
     respond_to do |format|
       format.html { render :show }

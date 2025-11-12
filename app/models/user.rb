@@ -1,5 +1,6 @@
 # app/models/user.rb
 class User < ApplicationRecord
+  enum :role, { user: 0, host: 1, admin: 2 }
   # =====================
   # Associations
   # =====================
@@ -20,6 +21,10 @@ class User < ApplicationRecord
   validates :email,
             format: { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true },
             uniqueness: { case_sensitive: false, allow_blank: true }
+  
+  
+
+
 
   validates :canonical_email,
             uniqueness: { case_sensitive: false, allow_blank: true }

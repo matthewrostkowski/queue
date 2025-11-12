@@ -32,6 +32,7 @@ Rails.application.routes.draw do
   
   # Scan route
   get  "/scan", to: "scan#index", as: :scan
+  post "/scan", to: "scan#create"
 
   # google oauth2 callback
   get "/auth/:provider/callback", to: "sessions#omniauth"

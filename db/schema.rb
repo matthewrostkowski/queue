@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_09_210558) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_11_050058) do
   create_table "queue_items", force: :cascade do |t|
     t.integer "song_id"
     t.integer "queue_session_id", null: false
@@ -46,6 +46,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_09_210558) do
     t.integer "currently_playing_id"
     t.boolean "is_playing", default: false
     t.datetime "playback_started_at"
+    t.string "access_code"
+    t.index ["access_code"], name: "index_queue_sessions_on_access_code", unique: true
     t.index ["currently_playing_id"], name: "index_queue_sessions_on_currently_playing_id"
     t.index ["venue_id"], name: "index_queue_sessions_on_venue_id"
   end
@@ -70,7 +72,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_09_210558) do
     t.string "email"
     t.string "password_digest"
     t.string "canonical_email"
+    t.integer "role", default: 0, null: false
     t.index ["canonical_email"], name: "index_users_on_canonical_email_unique", unique: true, where: "canonical_email IS NOT NULL /*application='Queuemusic'*/"
+    t.index ["role"], name: "index_users_on_role"
   end
 
   create_table "venues", force: :cascade do |t|
