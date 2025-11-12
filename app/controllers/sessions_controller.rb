@@ -1,6 +1,6 @@
 class SessionsController < ApplicationController
   skip_before_action :authenticate_user!, only: [:create, :destroy, :omniauth]
-  skip_before_action :set_current_user, only: [:create, :omniauth]
+  #skip_before_action :set_current_user, only: [:create, :omniauth]
   skip_forgery_protection only: [:omniauth]
 
   skip_forgery_protection if -> { request.format.json? }
