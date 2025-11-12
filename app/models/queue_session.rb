@@ -75,8 +75,32 @@ class QueueSession < ApplicationRecord
     end
   end
 
+  # How many songs are waiting (not yet played)
+  def songs_count
+    queue_items.where(played_at: nil).count
+  end
+
+  # When the session effectively started playback (fallback to created_at)
+  def started_at
+    playback_started_at || created_at
+  end
+
+  # Current song from the association or flag
+  def current_item
+    currently_playing_track || queue_items.find_by(is_currently_playing: true)
+  end
+
+  def current_song_title
+    current_item&.title
+  end
+
+  def current_song_artist
+    current_item&.artist
+  end
+
+
   private
-  
+
   def generate_access_code
     loop do
       # Generate 6-digit code

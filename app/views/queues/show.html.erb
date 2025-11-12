@@ -125,6 +125,23 @@
       font-size: 13px;
       color: #888;
     }
+    
+    .access-code-container {
+      margin-bottom: 16px;   
+    }
+    
+    .access-code {
+      margin-left: 12px;            
+      padding: 4px 8px;             
+      background: rgba(29, 185, 84, 0.1);  
+      border: 1px solid #1db954;    
+      border-radius: 6px;          
+      font-weight: 600;             
+      color: #1db954;               
+      letter-spacing: 0.5px;        
+      font-size: 12px;              
+    }
+
 
     /* ========== UP NEXT SECTION ========== */
     .up-next-section {
@@ -478,6 +495,12 @@
       <button class="play-queue-btn" id="playQueueBtn">
         ▶ Play Queue
       </button>
+    </div>
+
+    <div class="access-code-container">
+      <span class="access-code">
+        Access Code: 
+      <%= @access_code %></span>
     </div>
 
     <!-- Queue Info -->

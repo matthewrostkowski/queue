@@ -1,9 +1,315 @@
-<div data-testid="mainpage-welcome" class="card">
-  <h2>Welcome to Queue</h2>
-  <p>This is your main page.</p>
+<!-- app/views/main/index.html.erb -->
+<style nonce="<%= content_security_policy_nonce %>">
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
 
-  <nav style="margin-top:12px;display:flex;gap:12px">
-    <%= link_to "Scan QR", scan_path, class: "btn" %>
-    <%= link_to "Search Songs", search_path, class: "btn" %>
-  </nav>
+  .main-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  /* ========== WELCOME CARD ========== */
+  .main-page .welcome-card {
+    background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+    border: 1px solid #222;
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 40px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .main-page .welcome-card h2 {
+    margin: 0 0 12px;
+    color: #1db954;
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  .main-page .welcome-card p {
+    color: #aaa;
+    font-size: 15px;
+    margin-bottom: 20px;
+  }
+
+  .main-page .welcome-card nav {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .main-page .btn {
+    background: #1db954;
+    color: #0b0b0b;
+    text-decoration: none;
+    border-radius: 12px;
+    padding: 12px 24px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .main-page .btn:hover {
+    background: #1ed760;
+    transform: scale(1.05);
+  }
+
+  /* ========== SECTION TITLE ========== */
+  .main-page .page-title {
+    margin: 0 0 24px;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1db954;
+  }
+
+  /* ========== SESSION GRID ========== */
+  .main-page .sessions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .main-page .session-card {
+    background: #0f0f0f;
+    border: 1px solid #222;
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+  }
+
+  .main-page .session-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    border-color: #333;
+    background: #1a1a1a;
+  }
+
+  /* ========== QUEUE INFO HEADER ========== */
+  .main-page .queue-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #1a1a1a;
+    border-radius: 10px;
+  }
+
+  .main-page .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #fff;
+  }
+
+  .main-page .live-dot {
+    width: 8px;
+    height: 8px;
+    background: #1db954;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .main-page .access-code {
+    margin-left: 12px;
+    padding: 4px 8px;
+    background: rgba(29, 185, 84, 0.1);
+    border: 1px solid #1db954;
+    border-radius: 6px;
+    font-weight: 600;
+    color: #1db954;
+    letter-spacing: 0.5px;
+    font-size: 12px;
+  }
+
+  .main-page .song-count {
+    font-size: 13px;
+    color: #888;
+  }
+
+  /* ========== SESSION BODY ========== */
+  .main-page .session-body {
+    display: grid;
+    gap: 12px;
+    padding: 0 4px;
+  }
+
+  .main-page .session-body .row {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 12px;
+    align-items: baseline;
+  }
+
+  .main-page .label {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 500;
+  }
+
+  .main-page .value {
+    font-size: 14px;
+    color: #eee;
+  }
+
+  .main-page .value.muted {
+    color: #777;
+    font-style: italic;
+  }
+
+  /* ========== SESSION FOOTER ========== */
+  .main-page .session-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px 0 0;
+    margin-top: 4px;
+    border-top: 1px solid #222;
+    padding-top: 16px;
+  }
+
+  .main-page .join-btn {
+    background: #1db954;
+    color: #0b0b0b;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .main-page .join-btn:hover {
+    background: #1ed760;
+    transform: scale(1.05);
+  }
+
+  .main-page .join-btn::before {
+    content: '▶';
+    font-size: 12px;
+  }
+
+  /* ========== EMPTY STATE ========== */
+  .main-page .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #888;
+    background: #1a1a1a;
+    border-radius: 16px;
+    border: 1px solid #222;
+  }
+
+  .main-page .empty-state .empty-emoji {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .main-page .empty-state .empty-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .main-page .empty-state .empty-subtitle {
+    font-size: 14px;
+    margin-bottom: 0;
+  }
+</style>
+
+<div class="main-page">
+  <!-- Welcome Card -->
+  <div data-testid="mainpage-welcome" class="welcome-card">
+    <h2>Welcome to Queue</h2>
+    <p>Join a live session or create your own community-powered playlist.</p>
+
+    <nav>
+      <%= link_to "📱 Scan QR", scan_path, class: "btn" %>
+      <%= link_to "🔍 Search Songs", search_path, class: "btn" %>
+    </nav>
+  </div>
+
+  <!-- Live Queues Section -->
+  <h2 class="page-title">Live Queues</h2>
+
+  <div class="sessions-grid">
+    <% @sessions.each do |s| %>
+      <div class="session-card">
+        <!-- Header: Live + Access Code + Count -->
+        <div class="queue-info">
+          <div class="live-indicator">
+            <div class="live-dot"></div>
+            <span>Live Session</span>
+            <span class="access-code"><%= s.access_code %></span>
+          </div>
+          <div class="song-count"><%= pluralize(s.queue_items.where(played_at: nil).count, 'song') %></div>
+        </div>
+
+        <!-- Body: Venue / Started / Now Playing -->
+        <div class="session-body">
+          <div class="row">
+            <span class="label">Venue</span>
+            <span class="value"><%= s.venue&.name || "Unknown Venue" %></span>
+          </div>
+
+          <div class="row">
+            <span class="label">Started</span>
+            <span class="value" title="<%= s.playback_started_at || s.created_at %>">
+              <%= time_ago_in_words(s.playback_started_at || s.created_at) %> ago
+            </span>
+          </div>
+
+          <div class="row">
+            <span class="label">Now Playing</span>
+            <% current_item = s.currently_playing_track || s.queue_items.find { |qi| qi.is_currently_playing } %>
+            <% if current_item.present? %>
+              <span class="value"><%= current_item.title %> — <%= current_item.artist %></span>
+            <% else %>
+              <span class="value muted">Nothing playing</span>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Footer: Join -->
+        <div class="session-footer">
+          <%= link_to "Join Queue", queue_path, class: "join-btn" %>
+          <%# <%= link_to "Join Queue", queue_session_path(s), class: "join-btn" %>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @sessions.empty? %>
+      <div class="empty-state">
+        <div class="empty-emoji">🎵</div>
+        <div class="empty-title">No active sessions</div>
+        <p class="empty-subtitle">Be the first to start a live queue!</p>
+      </div>
+    <% end %>
+  </div>
 </div>
