@@ -1,7 +1,7 @@
 Feature: Main page shows welcome card and live queues
   As a visitor
   I want to see the welcome card and any live sessions
-  So that I can join a queue or start one
+  So that I can join a queue
 
   Scenario: Empty state
     Given I am on login page
