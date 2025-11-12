@@ -27,6 +27,7 @@ group :development, :test do
   gem 'shoulda-matchers', '~> 5.0'
   gem "simplecov", "~> 0.22", require: false
   gem "guard-rspec", "~> 4.7"
+  gem "rails-controller-testing"
 
   # Request helpers
   gem "rack-test", "~> 2.1"
