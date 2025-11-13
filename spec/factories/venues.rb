@@ -1,22 +1,33 @@
 FactoryBot.define do
   factory :venue do
-    name { "Venue #{SecureRandom.hex(4)}" }
-    location { "123 Main St" }
+    name { "Test Venue" }
+    location { "123 Main St, Test City, TC" }
     capacity { 200 }
-    
-    trait :with_pricing_enabled do
-      pricing_enabled { true }
-      base_price_cents { 100 }
-      min_price_cents { 1 }
-      max_price_cents { 50000 }
-      price_multiplier { 1.0 }
-      peak_hours_start { 19 }
-      peak_hours_end { 23 }
-      peak_hours_multiplier { 1.5 }
+    pricing_enabled { true }
+    base_price_cents { 100 }
+    price_multiplier { 1.0 }
+    min_price_cents { 50 }
+    max_price_cents { 1000 }
+    peak_hours_start { 18 } # 6 PM
+    peak_hours_end { 22 }   # 10 PM
+    peak_hours_multiplier { 1.5 }
+
+    trait :no_pricing do
+      pricing_enabled { false }
     end
-    
-    trait :with_high_prices do
-      pricing_enabled { true }
+
+    trait :expensive do
+      base_price_cents { 200 }
+      price_multiplier { 1.5 }
+    end
+
+    trait :peak_hours do
+      peak_hours_start { 20 }
+      peak_hours_end { 2 }
+      peak_hours_multiplier { 2.0 }
+    end
+
+    trait :high_prices do
       base_price_cents { 1000 }
       min_price_cents { 100 }
       max_price_cents { 100000 }
