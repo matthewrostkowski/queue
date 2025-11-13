@@ -15,10 +15,11 @@ class QueueItem < ApplicationRecord
   # Set defaults
   before_validation :set_defaults, on: :create
   
-  # Scopes - order by vote_count first, then vote_score as tiebreaker
+  # Scopes
   scope :unplayed, -> { where(status: 'pending') }
   scope :played, -> { where(status: 'played') }
-  scope :by_votes, -> { order(vote_count: :desc, base_priority: :asc, created_at: :asc) }
+  scope :by_position, -> { order(:base_priority, :created_at) } # For display - paid positions only
+  scope :by_votes, -> { order(:base_priority, vote_score: :desc, created_at: :asc) } # For playback - with vote tiebreakers
   
   # Override attribute readers to check both song and direct attributes
   def title
@@ -53,6 +54,40 @@ class QueueItem < ApplicationRecord
   
   def base_price=(dollars)
     self.base_price_cents = (dollars.to_f * 100).to_i
+  end
+  
+  # Pricing and position methods
+  def effective_cost
+    position_paid_cents.to_i - refund_amount_cents.to_i
+  end
+  
+  def was_bumped?
+    return false unless inserted_at_position && position_guaranteed
+    inserted_at_position != current_position_in_queue
+  end
+  
+  def current_position_in_queue
+    return nil unless queue_session
+
+    # Get position among unplayed items
+    unplayed_items = queue_session.queue_items
+                                  .where(played_at: nil)
+                                  .where(status: 'pending')
+                                  .order(:base_priority, :created_at)
+                                  .pluck(:id)
+
+    position = unplayed_items.index(id)
+    position ? position + 1 : nil  # Convert to 1-indexed
+  end
+
+  # Price to jump ahead of this item (insert at its current position)
+  def jump_ahead_price_cents
+    @jump_ahead_price || 0
+  end
+
+  def jump_ahead_price_display
+    price = jump_ahead_price_cents
+    price > 0 ? "$#{'%.2f' % (price / 100.0)}" : "Free"
   end
   
   private

@@ -5,17 +5,21 @@
       <p class="text-[color:var(--muted)] text-lg">Your Queue activity and contributions</p>
     </div>
 
-    <!-- Stats Summary -->
-    <div class="grid grid-cols-2 gap-6 mb-10 p-6 bg-white/5 rounded-xl">
-      <div class="text-center">
-        <div class="text-4xl font-black text-[color:var(--primary)] mb-1"><%= @summary[:queued_count] %></div>
-        <div class="text-xs uppercase tracking-wider text-[color:var(--muted)] font-medium">Songs Queued</div>
-      </div>
-      <div class="text-center">
-        <div class="text-4xl font-black text-[color:var(--primary)] mb-1"><%= @summary[:upvotes_total] %></div>
-        <div class="text-xs uppercase tracking-wider text-[color:var(--muted)] font-medium">Total Upvotes</div>
-      </div>
-    </div>
+        <!-- Stats Summary -->
+        <div class="grid grid-cols-3 gap-6 mb-10 p-6 bg-white/5 rounded-xl">
+          <div class="text-center">
+            <div class="text-3xl font-black text-[color:var(--primary)] mb-1"><%= @user.balance_display %></div>
+            <div class="text-xs uppercase tracking-wider text-[color:var(--muted)] font-medium">Balance</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-black text-[color:var(--primary)] mb-1"><%= @summary[:queued_count] %></div>
+            <div class="text-xs uppercase tracking-wider text-[color:var(--muted)] font-medium">Songs Queued</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-black text-[color:var(--primary)] mb-1"><%= @summary[:upvotes_total] %></div>
+            <div class="text-xs uppercase tracking-wider text-[color:var(--muted)] font-medium">Total Upvotes</div>
+          </div>
+        </div>
 
     <!-- Queue Items List -->
     <h2 class="text-xl font-bold mb-4">Songs I've Queued</h2>

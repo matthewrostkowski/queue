@@ -1,0 +1,89 @@
+<div class="max-w-6xl mx-auto">
+  <h1 class="text-3xl font-bold mb-8">User Balances & Transactions</h1>
+  
+  <!-- User Balances Table -->
+  <div class="rounded-2xl border border-white/10 bg-[color:var(--bg-elev)] shadow-lg overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-white/10">
+      <h2 class="text-xl font-semibold">User Balances</h2>
+    </div>
+    <table class="w-full">
+      <thead class="border-b border-white/10">
+        <tr>
+          <th class="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">User</th>
+          <th class="text-right px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Balance</th>
+          <th class="text-center px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Transactions</th>
+          <th class="text-right px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/5">
+        <% @users.each do |user| %>
+          <tr class="hover:bg-white/5 transition-colors">
+            <td class="px-6 py-4">
+              <div class="font-semibold"><%= user.display_name %></div>
+              <div class="text-sm text-[color:var(--muted)]">ID: <%= user.id %></div>
+            </td>
+            <td class="px-6 py-4 text-right">
+              <span class="text-lg font-semibold <%= user.balance_cents > 0 ? 'text-[color:var(--primary)]' : 'text-red-500' %>">
+                <%= user.balance_display %>
+              </span>
+            </td>
+            <td class="px-6 py-4 text-center">
+              <%= user.balance_transactions.count %>
+            </td>
+            <td class="px-6 py-4 text-right">
+              <%= link_to "View History", admin_balance_transaction_path(user), class: "text-sm text-[color:var(--primary)] hover:underline" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- Recent Transactions -->
+  <div class="rounded-2xl border border-white/10 bg-[color:var(--bg-elev)] shadow-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-white/10">
+      <h2 class="text-xl font-semibold">Recent Transactions</h2>
+    </div>
+    <table class="w-full">
+      <thead class="border-b border-white/10">
+        <tr>
+          <th class="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Time</th>
+          <th class="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">User</th>
+          <th class="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Type</th>
+          <th class="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Description</th>
+          <th class="text-right px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Amount</th>
+          <th class="text-right px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Balance After</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/5">
+        <% @recent_transactions.each do |transaction| %>
+          <tr class="hover:bg-white/5 transition-colors text-sm">
+            <td class="px-6 py-3">
+              <%= time_ago_in_words(transaction.created_at) %> ago
+            </td>
+            <td class="px-6 py-3">
+              <%= transaction.user.display_name %>
+            </td>
+            <td class="px-6 py-3">
+              <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full
+                <%= transaction.credit? ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400' %>">
+                <%= transaction.transaction_type.capitalize %>
+              </span>
+            </td>
+            <td class="px-6 py-3">
+              <%= transaction.description %>
+            </td>
+            <td class="px-6 py-3 text-right">
+              <span class="<%= transaction.credit? ? 'text-green-400' : 'text-red-400' %>">
+                <%= transaction.credit? ? '+' : '' %><%= transaction.amount_display %>
+              </span>
+            </td>
+            <td class="px-6 py-3 text-right">
+              <%= "$#{'%.2f' % (transaction.balance_after_cents / 100.0)}" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
