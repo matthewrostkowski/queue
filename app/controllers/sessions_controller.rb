@@ -1,6 +1,6 @@
 class SessionsController < ApplicationController
   skip_before_action :authenticate_user!, only: [:create, :destroy, :omniauth]
-  skip_before_action :set_current_user, only: [:create, :omniauth]
+  #skip_before_action :set_current_user, only: [:create, :omniauth]
   skip_forgery_protection only: [:omniauth]
 
   skip_forgery_protection if -> { request.format.json? }
@@ -18,7 +18,7 @@ class SessionsController < ApplicationController
         reset_session
         session[:user_id] = user.id
         respond_to do |format|
-          format.html { redirect_to mainpage_path, status: :see_other, notice: "Welcome back, #{user.display_name}" }
+          format.html { redirect_to after_sign_in_path, notice: "Welcome back, #{user.display_name}" }
           format.json { render json: { id: user.id, display_name: user.display_name, auth_provider: user.auth_provider }, status: :ok }
         end
       else
@@ -39,7 +39,7 @@ class SessionsController < ApplicationController
 
       session[:user_id] = user.id
       respond_to do |format|
-        format.html { redirect_to mainpage_path, notice: "Welcome, #{user.display_name}" }
+        format.html { redirect_to after_sign_in_path, notice: "Welcome, #{user.display_name}" }
         format.json { render json: { id: user.id, display_name: user.display_name, auth_provider: user.auth_provider }, status: :ok }
       end
     end

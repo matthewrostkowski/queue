@@ -1,3 +1,6 @@
+require_relative '../services/dynamic_pricing_service'
+require_relative '../services/queue_position_service'
+
 class QueueItemsController < ApplicationController
   before_action :set_queue_item, only: [:show, :vote, :upvote, :downvote, :destroy]
 
@@ -9,7 +12,7 @@ class QueueItemsController < ApplicationController
     end
     
     @queue_items = QueueItem.where(queue_session_id: params[:queue_session_id], status: 'pending')
-                            .by_votes
+                            .by_position
     
     render json: @queue_items.map { |qi| format_queue_item(qi) }
   end
@@ -46,12 +49,44 @@ class QueueItemsController < ApplicationController
       end
 
       queue_session = current_queue_session
+      
+      # Ensure we have an active queue session
+      unless queue_session
+        flash[:alert] = "No active queue session found"
+        redirect_back(fallback_location: search_path)
+        return
+      end
+      
+      # Get desired position and payment info
+      desired_position = params[:desired_position]&.to_i || queue_session.songs_count + 1
+      # Handle NaN case from JavaScript
+      paid_amount_cents = params[:paid_amount_cents].to_s == 'NaN' ? 0 : (params[:paid_amount_cents]&.to_i || 0)
+      
+      # Calculate required price
+      calculated_price = DynamicPricingService.calculate_position_price(queue_session, desired_position)
+      
+      # Check user balance
+      unless current_user.has_sufficient_balance?(calculated_price)
+        respond_to do |format|
+          format.html do
+            flash[:alert] = "Insufficient balance. You have #{current_user.balance_display}, but need $#{'%.2f' % (calculated_price / 100.0)}"
+            redirect_back(fallback_location: search_path)
+          end
+          format.json do
+            render json: { error: "Insufficient balance", balance: current_user.balance_cents, required: calculated_price }, status: :payment_required
+          end
+        end
+        return
+      end
 
       qi = QueueItem.new(
         song: song,
         queue_session: queue_session,
         user: current_user,
-        base_price_cents: 399,
+        base_price_cents: calculated_price,
+        position_paid_cents: paid_amount_cents,
+        position_guaranteed: desired_position,
+        inserted_at_position: desired_position,
         vote_count: 0,
         vote_score: 0,
         base_priority: 0,
@@ -60,9 +95,42 @@ class QueueItemsController < ApplicationController
     end
     
     if qi.save
-      respond_to do |format|
-        format.html { redirect_to queue_path, notice: "Song added to queue!" }
-        format.json { render json: format_queue_item(qi), status: :created }
+      begin
+        # Debit user balance only if there's a cost
+        if calculated_price > 0
+          Rails.logger.info "Debiting user #{current_user.id} balance: #{calculated_price} cents"
+          Rails.logger.info "Current balance before: #{current_user.balance_cents} cents"
+          
+          current_user.debit_balance!(
+            calculated_price, 
+            description: "Queue: #{song.title} - Position #{desired_position}",
+            queue_item: qi
+          )
+          
+          Rails.logger.info "Balance after debit: #{current_user.reload.balance_cents} cents"
+        else
+          Rails.logger.info "Free queue addition for user #{current_user.id} (no competition)"
+        end
+        
+        # Handle position insertion with potential refunds
+        if qi.position_guaranteed && qi.position_paid_cents
+          QueuePositionService.insert_at_position(qi, qi.position_guaranteed, qi.position_paid_cents)
+        end
+        
+        respond_to do |format|
+          format.html { redirect_to queue_path, notice: "Song added to queue! Balance: #{current_user.reload.balance_display}" }
+          format.json { render json: format_queue_item(qi).merge(user_balance: current_user.balance_cents), status: :created }
+        end
+      rescue => e
+        # Rollback queue item if payment fails
+        qi.destroy
+        respond_to do |format|
+          format.html do
+            flash[:alert] = "Payment failed: #{e.message}"
+            redirect_back(fallback_location: search_path)
+          end
+          format.json { render json: { error: e.message }, status: :unprocessable_entity }
+        end
       end
     else
       respond_to do |format|
@@ -155,6 +223,12 @@ class QueueItemsController < ApplicationController
       status: qi.status,
       created_at: qi.created_at,
       updated_at: qi.updated_at,
+      position_guaranteed: qi.position_guaranteed,
+      position_paid_cents: qi.position_paid_cents,
+      effective_cost_cents: qi.effective_cost,
+      refund_amount_cents: qi.refund_amount_cents,
+      current_position: qi.current_position_in_queue,
+      was_bumped: qi.was_bumped?,
       song: qi.song ? {
         id: qi.song.id,
         title: qi.song.title,

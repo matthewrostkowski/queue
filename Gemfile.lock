@@ -152,6 +152,7 @@ GEM
     ffi (1.17.2-arm-linux-gnu)
     ffi (1.17.2-arm-linux-musl)
     ffi (1.17.2-arm64-darwin)
+    ffi (1.17.2-x64-mingw-ucrt)
     ffi (1.17.2-x86_64-darwin)
     ffi (1.17.2-x86_64-linux-gnu)
     ffi (1.17.2-x86_64-linux-musl)
@@ -234,6 +235,8 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.10-arm64-darwin)
       racc (~> 1.4)
+    nokogiri (1.18.10-x64-mingw-ucrt)
+      racc (~> 1.4)
     nokogiri (1.18.10-x86_64-darwin)
       racc (~> 1.4)
     nokogiri (1.18.10-x86_64-linux-gnu)
@@ -272,6 +275,7 @@ GEM
     pg (1.6.2-aarch64-linux)
     pg (1.6.2-aarch64-linux-musl)
     pg (1.6.2-arm64-darwin)
+    pg (1.6.2-x64-mingw-ucrt)
     pg (1.6.2-x86_64-darwin)
     pg (1.6.2-x86_64-linux)
     pg (1.6.2-x86_64-linux-musl)
@@ -314,6 +318,10 @@ GEM
       activesupport (= 8.0.0)
       bundler (>= 1.15.0)
       railties (= 8.0.0)
+    rails-controller-testing (1.0.5)
+      actionpack (>= 5.0.1.rc1)
+      actionview (>= 5.0.1.rc1)
+      activesupport (>= 5.0.1.rc1)
     rails-dom-testing (2.3.0)
       activesupport (>= 5.0.0)
       minitest
@@ -387,6 +395,7 @@ GEM
     sqlite3 (2.7.4-arm-linux-gnu)
     sqlite3 (2.7.4-arm-linux-musl)
     sqlite3 (2.7.4-arm64-darwin)
+    sqlite3 (2.7.4-x64-mingw-ucrt)
     sqlite3 (2.7.4-x86_64-darwin)
     sqlite3 (2.7.4-x86_64-linux-gnu)
     sqlite3 (2.7.4-x86_64-linux-musl)
@@ -399,6 +408,8 @@ GEM
     tsort (0.2.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
+    tzinfo-data (1.2025.2)
+      tzinfo (>= 1.0.0)
     uri (1.0.4)
     useragent (0.16.11)
     version_gem (1.1.9)
@@ -422,6 +433,7 @@ PLATFORMS
   arm-linux-gnu
   arm-linux-musl
   arm64-darwin
+  x64-mingw-ucrt
   x86_64-darwin
   x86_64-linux
   x86_64-linux-gnu
@@ -445,6 +457,7 @@ DEPENDENCIES
   puma (~> 6.6)
   rack-test (~> 2.1)
   rails (= 8.0)
+  rails-controller-testing
   rspec-rails
   selenium-webdriver
   shoulda-matchers (~> 5.0)

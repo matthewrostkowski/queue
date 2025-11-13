@@ -15,6 +15,9 @@ class QueueSession < ApplicationRecord
 
   validates :venue, presence: true
 
+  before_create :generate_access_code
+  validates :access_code, uniqueness: true, allow_nil: true
+
   # Get the queue in priority order
   def ordered_queue
     queue_items
@@ -69,6 +72,41 @@ class QueueSession < ApplicationRecord
     else
       stop_playback!
       nil
+    end
+  end
+
+  # How many songs are waiting (not yet played)
+  def songs_count
+    queue_items.where(played_at: nil).count
+  end
+
+  # When the session effectively started playback (fallback to created_at)
+  def started_at
+    playback_started_at || created_at
+  end
+
+  # Current song from the association or flag
+  def current_item
+    currently_playing_track || queue_items.find_by(is_currently_playing: true)
+  end
+
+  def current_song_title
+    current_item&.title
+  end
+
+  def current_song_artist
+    current_item&.artist
+  end
+
+
+  private
+
+  def generate_access_code
+    loop do
+      # Generate 6-digit code
+      self.access_code = SecureRandom.random_number(999999).to_s.rjust(6, '0')
+      # Break if code is unique
+      break unless QueueSession.exists?(access_code: access_code)
     end
   end
 end

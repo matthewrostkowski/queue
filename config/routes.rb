@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   get "/search", to: "songs#search"
   get "/songs", to: "songs#index"
   get "/songs/search", to: "songs#search"
+  get "/songs/price_preview", to: "songs#price_preview"
   get "/songs/:id", to: "songs#show"
 
   # User signup and summary
@@ -32,6 +33,7 @@ Rails.application.routes.draw do
   
   # Scan route
   get  "/scan", to: "scan#index", as: :scan
+  post "/scan", to: "scan#create"
 
   # google oauth2 callback
   get "/auth/:provider/callback", to: "sessions#omniauth"
@@ -53,8 +55,44 @@ Rails.application.routes.draw do
     get :state
   end
 
+  #Admin
+  namespace :admin do
+  get "dashboard", to: "dashboard#index"
+  resources :users, only: [:index] do
+    member do
+      patch :promote_to_host
+      patch :promote_to_admin
+      patch :demote
+    end
+  end
+end
+
   # Venues
   resources :venues, only: [:show]
+  
+  # Admin namespace
+  namespace :admin do
+    get "dashboard", to: "dashboard#index"
+    resources :users
+    resources :venues do
+      member do
+        patch :update_pricing
+      end
+    end
+    resources :balance_transactions, only: [:index] do
+      member do
+        get :show
+        post :add_credit
+      end
+    end
+  end
+
+  # API endpoints
+  namespace :api do
+    get "pricing/current_prices", to: "pricing#current_prices"
+    get "pricing/position_price", to: "pricing#position_price"
+    get "pricing/factors", to: "pricing#pricing_factors"
+  end
 
   # Health check
   get "up" => "rails/health#show", as: :rails_health_check

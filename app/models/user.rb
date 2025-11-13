@@ -1,10 +1,12 @@
 # app/models/user.rb
 class User < ApplicationRecord
+  enum :role, { user: 0, host: 1, admin: 2 }
   # =====================
   # Associations
   # =====================
   has_many :queue_items, dependent: :nullify
   has_many :queued_songs, through: :queue_items, source: :song
+  has_many :balance_transactions, dependent: :destroy
 
   # =====================
   # Authentication
@@ -20,6 +22,10 @@ class User < ApplicationRecord
   validates :email,
             format: { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true },
             uniqueness: { case_sensitive: false, allow_blank: true }
+  
+  
+
+
 
   validates :canonical_email,
             uniqueness: { case_sensitive: false, allow_blank: true }
@@ -51,6 +57,74 @@ class User < ApplicationRecord
   # =====================
   # Callbacks
   # =====================
+  # =====================
+  # Balance Management
+  # =====================
+  
+  def balance
+    balance_cents / 100.0
+  end
+  
+  def balance_display
+    "$#{'%.2f' % balance}"
+  end
+  
+  def has_sufficient_balance?(amount_cents)
+    balance_cents >= amount_cents
+  end
+  
+  # Deduct amount from balance (for queue payments)
+  def debit_balance!(amount_cents, description: nil, queue_item: nil)
+    raise "Insufficient balance" unless has_sufficient_balance?(amount_cents)
+    
+    transaction do
+      # Update user balance
+      new_balance = balance_cents - amount_cents
+      update!(balance_cents: new_balance)
+      
+      # Record transaction
+      balance_transactions.create!(
+        amount_cents: -amount_cents,
+        transaction_type: 'debit',
+        description: description || "Queue payment",
+        queue_item: queue_item,
+        balance_after_cents: new_balance
+      )
+    end
+  end
+  
+  # Add amount to balance (for refunds or credits)
+  def credit_balance!(amount_cents, description: nil, queue_item: nil)
+    transaction do
+      # Update user balance
+      new_balance = balance_cents + amount_cents
+      update!(balance_cents: new_balance)
+      
+      # Record transaction
+      balance_transactions.create!(
+        amount_cents: amount_cents,
+        transaction_type: 'refund',
+        description: description || "Queue refund",
+        queue_item: queue_item,
+        balance_after_cents: new_balance
+      )
+    end
+  end
+  
+  # Initialize balance for new users
+  def initialize_balance!
+    return if balance_transactions.exists?
+    
+    transaction do
+      balance_transactions.create!(
+        amount_cents: 10000,
+        transaction_type: 'initial',
+        description: "Welcome bonus",
+        balance_after_cents: balance_cents
+      )
+    end
+  end
+
   private
 
   def normalize_and_canonicalize_email

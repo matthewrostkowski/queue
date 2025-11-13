@@ -1,9 +1,79 @@
-<div data-testid="mainpage-welcome" class="card">
-  <h2>Welcome to Queue</h2>
-  <p>This is your main page.</p>
+<div class="max-w-6xl mx-auto">
+  <!-- Welcome Card -->
+  <div data-testid="mainpage-welcome" class="rounded-2xl border border-white/10 bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] shadow-xl p-8 mb-8">
+    <h2 class="text-3xl font-bold mb-3 text-[color:var(--primary)]">Welcome to Queue</h2>
+    <p class="text-[color:var(--muted)] text-lg mb-6">Join a live session or create your own community-powered playlist.</p>
 
-  <nav style="margin-top:12px;display:flex;gap:12px">
-    <%= link_to "Scan QR", scan_path, class: "btn" %>
-    <%= link_to "Search Songs", search_path, class: "btn" %>
-  </nav>
+    <nav class="flex flex-wrap gap-3">
+      <%= link_to scan_path, class: "inline-flex items-center gap-2 rounded-lg px-5 py-3 font-semibold bg-[color:var(--primary)] text-gray-900 hover:opacity-90 transition-all" do %>
+        <span>📱</span>
+        <span>Scan QR</span>
+      <% end %>
+      <%= link_to search_path, class: "inline-flex items-center gap-2 rounded-lg px-5 py-3 font-semibold bg-[color:var(--primary)] text-gray-900 hover:opacity-90 transition-all" do %>
+        <span>🔍</span>
+        <span>Search Songs</span>
+      <% end %>
+    </nav>
+  </div>
+
+  <!-- Live Queues Section -->
+  <h2 class="text-2xl font-bold mb-6 text-[color:var(--primary)]">Live Queues</h2>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
+    <% @sessions.each do |s| %>
+      <div class="rounded-2xl border border-white/10 bg-[#0f0f0f] hover:bg-[#1a1a1a] shadow-lg hover:shadow-xl p-5 flex flex-col gap-y-4 transition-all hover:-translate-y-1">
+        <!-- Header: Live + Access Code + Count -->
+        <div class="flex items-center justify-between px-4 py-3 bg-[#1a1a1a] rounded-lg">
+          <div class="flex items-center gap-x-2 text-sm">
+            <div class="w-2 h-2 bg-[color:var(--primary)] rounded-full animate-pulse"></div>
+            <span class="font-medium">Live Session</span>
+            <span class="ml-2 px-2 py-0.5 bg-[color:var(--primary)]/10 border border-[color:var(--primary)] rounded text-xs font-semibold text-[color:var(--primary)] tracking-wide">
+              <%= s.access_code %>
+            </span>
+          </div>
+          <div class="text-sm text-[color:var(--muted)]">
+            <%= pluralize(s.queue_items.where(played_at: nil).count, 'song') %>
+          </div>
+        </div>
+
+        <!-- Body: Venue / Started / Now Playing -->
+        <div class="space-y-3 px-1">
+          <div class="grid grid-cols-[100px_1fr] gap-x-3 items-baseline">
+            <span class="text-xs uppercase tracking-wide font-medium text-[color:var(--muted)]">Venue</span>
+            <span class="text-sm"><%= s.venue&.name || "Unknown Venue" %></span>
+          </div>
+
+          <div class="grid grid-cols-[100px_1fr] gap-x-3 items-baseline">
+            <span class="text-xs uppercase tracking-wide font-medium text-[color:var(--muted)]">Started</span>
+            <span class="text-sm" title="<%= s.playback_started_at || s.created_at %>">
+              <%= time_ago_in_words(s.playback_started_at || s.created_at) %> ago
+            </span>
+          </div>
+
+          <div class="grid grid-cols-[100px_1fr] gap-x-3 items-baseline">
+            <span class="text-xs uppercase tracking-wide font-medium text-[color:var(--muted)]">Now Playing</span>
+            <% current_item = s.currently_playing_track || s.queue_items.find { |qi| qi.is_currently_playing } %>
+            <% if current_item.present? %>
+              <span class="text-sm"><%= current_item.title %> — <%= current_item.artist %></span>
+            <% else %>
+              <span class="text-sm text-[color:var(--muted)] italic">Nothing playing</span>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Footer: Join -->
+        <div class="flex justify-end pt-4 border-t border-white/10">
+          <%= link_to "Join Queue", queue_path, class: "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 font-bold text-sm bg-[color:var(--primary)] text-gray-900 hover:opacity-90 transition-all" %>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @sessions.empty? %>
+      <div class="col-span-full text-center py-16 px-6 bg-white/5 rounded-2xl border border-white/10">
+        <div class="text-6xl mb-4 opacity-50">🎵</div>
+        <div class="text-xl font-semibold mb-2">No active sessions</div>
+        <p class="text-[color:var(--muted)] text-sm">Be the first to start a live queue!</p>
+      </div>
+    <% end %>
+  </div>
 </div>
