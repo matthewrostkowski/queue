@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Queue – Live Music</title>
@@ -177,26 +177,6 @@
       box-shadow: 0 0 20px rgba(29, 185, 84, 0.3);
     }
 
-    .song-card.moving-up {
-      animation: moveUp 0.5s ease;
-      box-shadow: 0 0 20px rgba(29, 185, 84, 0.5);
-      border-color: #1db954;
-    }
-
-    @keyframes moveUp {
-      0% {
-        transform: translateY(0);
-        box-shadow: 0 0 0 rgba(29, 185, 84, 0);
-      }
-      50% {
-        transform: translateY(-5px);
-        box-shadow: 0 0 30px rgba(29, 185, 84, 0.8);
-      }
-      100% {
-        transform: translateY(0);
-        box-shadow: 0 0 20px rgba(29, 185, 84, 0.5);
-      }
-    }
 
     .song-card:hover {
       background: #1a1a1a;
@@ -263,6 +243,37 @@
     .song-meta {
       font-size: 11px;
       color: #666;
+    }
+
+    .song-pricing {
+      margin-top: 6px;
+    }
+
+    .jump-ahead-btn {
+      background: rgba(29, 185, 84, 0.1);
+      border: 1px solid rgba(29, 185, 84, 0.3);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .jump-ahead-btn:hover {
+      background: rgba(29, 185, 84, 0.2);
+      border-color: #1db954;
+    }
+
+    .price-label {
+      color: #888;
+    }
+
+    .price-value {
+      color: #1db954;
+      font-weight: 600;
+      margin-left: 4px;
     }
 
     /* Voting section */
@@ -541,6 +552,13 @@
                     • <%= "#{item.duration_ms / 60000}:#{((item.duration_ms % 60000) / 1000).to_s.rjust(2, '0')}" %>
                   <% end %>
                 </div>
+
+              <div class="song-pricing">
+                <button class="jump-ahead-btn" data-position="1" data-price="<%= item.jump_ahead_price_cents %>">
+                  <span class="price-label">Jump ahead:</span>
+                  <span class="price-value"><%= item.jump_ahead_price_display %></span>
+                </button>
+                </div>
               </div>
 
               <div class="song-actions">
@@ -806,32 +824,970 @@
           scoreEl.textContent = data.vote_score;
           card.dataset.voteScore = data.vote_score;
           
-          // Reorder queue with animation
-          this.reorderQueue();
+          // Note: Queue ordering is now controlled by server (paid positions)
+          // No client-side reordering needed
           
         } catch (error) {
           console.error('Vote failed:', error);
         }
       }
 
-      reorderQueue() {
-        const queueList = document.getElementById('queueList');
-        const cards = Array.from(queueList.querySelectorAll('.song-card'));
-        
-        // Sort by vote score (descending)
-        cards.sort((a, b) => {
-          return parseInt(b.dataset.voteScore) - parseInt(a.dataset.voteScore);
+    }
+
+    // ========== JUMP AHEAD SYSTEM ==========
+    class JumpAheadSystem {
+      constructor() {
+        this.attachJumpAheadListeners();
+      }
+
+      attachJumpAheadListeners() {
+        document.querySelectorAll('.jump-ahead-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => this.handleJumpAhead(e));
         });
-        
-        // Reorder with animation
-        cards.forEach((card, index) => {
-          const currentIndex = Array.from(queueList.children).indexOf(card);
-          if (currentIndex > index) {
-            card.classList.add('moving-up');
-            setTimeout(() => card.classList.remove('moving-up'), 500);
+      }
+
+      handleJumpAhead(e) {
+        const button = e.target.closest('.jump-ahead-btn');
+        const position = button.getAttribute('data-position');
+        const price = button.getAttribute('data-price');
+
+        this.showJumpAheadModal(position, price);
+      }
+
+       showJumpAheadModal(startPosition, initialPrice) {
+         // Remove existing modal if any
+         const existingModal = document.getElementById('jump-ahead-modal');
+         if (existingModal) existingModal.remove();
+
+         // Get user balance
+         const userBalance = <%= current_user ? current_user.balance_cents : 0 %>;
+
+         const modalHTML = `
+           <div id="jump-ahead-modal" style="
+             position: fixed;
+             top: 0;
+             left: 0;
+             right: 0;
+             bottom: 0;
+             background: rgba(0, 0, 0, 0.9);
+             backdrop-filter: blur(4px);
+             z-index: 1000;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             padding: 1rem;
+           ">
+             <div style="
+               background: #1a1a1a;
+               border: 1px solid rgba(255,255,255,0.1);
+               border-radius: 1rem;
+               max-width: 500px;
+               width: 100%;
+               max-height: 90vh;
+               display: flex;
+               flex-direction: column;
+             ">
+               <!-- Header -->
+               <div style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                 <div style="display: flex; justify-content: space-between; align-items: center;">
+                   <h2 style="font-size: 1.25rem; font-weight: 600; margin: 0;">Add Song to Queue</h2>
+                   <button id="close-jump-modal" style="
+                     background: none;
+                     border: none;
+                     color: #666;
+                     font-size: 24px;
+                     cursor: pointer;
+                     padding: 0;
+                     width: 30px;
+                     height: 30px;
+                   ">×</button>
+                 </div>
+               </div>
+
+               <!-- Search Section -->
+               <div style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                 <label style="display: block; margin-bottom: 0.5rem; color: #fff; font-weight: 500; font-size: 0.875rem;">Search for a song</label>
+                 <input type="text" id="jump-song-search" placeholder="Song or artist name..." style="
+                   width: 100%;
+                   padding: 0.75rem;
+                   background: #2a2a2a;
+                   border: 1px solid #444;
+                   border-radius: 0.5rem;
+                   color: #fff;
+                   font-size: 0.875rem;
+                 ">
+                 <div id="jump-search-results" style="margin-top: 0.5rem; max-height: 150px; overflow-y: auto;"></div>
+                 <div id="selected-song-display" style="display: none; margin-top: 0.75rem; padding: 0.75rem; background: rgba(29, 185, 84, 0.1); border: 1px solid rgba(29, 185, 84, 0.3); border-radius: 0.5rem;">
+                   <div style="font-size: 0.875rem; color: #1db954; font-weight: 600;" id="selected-song-name"></div>
+                 </div>
+               </div>
+
+               <!-- Queue Position Slider -->
+               <div style="padding: 1.5rem; flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+                 <label style="display: block; margin-bottom: 1rem; color: #fff; font-weight: 500; font-size: 0.875rem;">
+                   Drag your song to choose position
+                 </label>
+                 <div id="queue-position-list" style="
+                   flex: 1;
+                   overflow-y: auto;
+                   background: #0f0f0f;
+                   border-radius: 0.5rem;
+                   padding: 0.5rem;
+                 ">
+                   <!-- Position items will be added here -->
+                   <!-- Selected song will be inserted at position 1 and draggable -->
+                 </div>
+               </div>
+
+               <!-- Bottom Action Bar -->
+               <div style="padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); background: #151515;">
+                 <!-- Debug Info -->
+                 <div id="pricing-debug" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; font-size: 0.75rem; color: #888; font-family: monospace;">
+                   <div style="margin-bottom: 0.5rem; color: #1db954; font-weight: 600;">Pricing Breakdown:</div>
+                   <div id="debug-content"></div>
+                 </div>
+                 
+                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                   <div>
+                     <div style="font-size: 0.75rem; color: #888; margin-bottom: 0.25rem;">Position <span id="selected-position-num">-</span></div>
+                     <div style="font-size: 1.25rem; font-weight: 600; color: #1db954;" id="position-cost-display">$0.00</div>
+                   </div>
+                   <div style="text-align: right;">
+                     <div style="font-size: 0.75rem; color: #888; margin-bottom: 0.25rem;">Your balance</div>
+                     <div style="font-size: 1rem; font-weight: 600; color: #fff;">$${(userBalance / 100).toFixed(2)}</div>
+                   </div>
+                 </div>
+                 <div style="display: flex; gap: 0.75rem;">
+                   <button id="cancel-jump-ahead" style="
+                     flex: 1;
+                     padding: 0.875rem;
+                     background: rgba(255,255,255,0.1);
+                     border: 1px solid rgba(255,255,255,0.2);
+                     border-radius: 0.5rem;
+                     color: #fff;
+                     cursor: pointer;
+                     font-weight: 500;
+                   ">Cancel</button>
+                   <button id="confirm-jump-ahead" disabled style="
+                     flex: 2;
+                     padding: 0.875rem;
+                     background: #1db954;
+                     border: none;
+                     border-radius: 0.5rem;
+                     color: #000;
+                     font-weight: 600;
+                     cursor: pointer;
+                     opacity: 0.5;
+                   ">Select song and position</button>
+                 </div>
+               </div>
+             </div>
+           </div>
+         `;
+
+         document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+         // Attach event listeners
+         this.attachModalListeners(startPosition, initialPrice);
+       }
+
+      attachModalListeners(startPosition, initialPrice) {
+        const modal = document.getElementById('jump-ahead-modal');
+        const searchInput = document.getElementById('jump-song-search');
+        const searchResults = document.getElementById('jump-search-results');
+        const selectedSongDisplay = document.getElementById('selected-song-display');
+        const selectedSongName = document.getElementById('selected-song-name');
+        const queuePositionList = document.getElementById('queue-position-list');
+        const confirmBtn = document.getElementById('confirm-jump-ahead');
+        const positionCostDisplay = document.getElementById('position-cost-display');
+        const selectedPositionNum = document.getElementById('selected-position-num');
+
+        let selectedSong = null;
+        let selectedPosition = null;
+        let selectedPrice = null;
+
+        // Close modal
+        document.getElementById('close-jump-modal').addEventListener('click', () => modal.remove());
+        document.getElementById('cancel-jump-ahead').addEventListener('click', () => modal.remove());
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) modal.remove();
+        });
+
+        // Search functionality
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+          clearTimeout(searchTimeout);
+          const query = e.target.value.trim();
+
+          if (query.length < 2) {
+            searchResults.innerHTML = '';
+            return;
           }
-          queueList.appendChild(card);
+
+          searchTimeout = setTimeout(() => {
+            this.searchSongs(query, searchResults, (song) => {
+              selectedSong = song;
+              selectedSongName.textContent = `✓ ${song.title} by ${song.artist}`;
+              selectedSongDisplay.style.display = 'block';
+              searchResults.innerHTML = '';
+              searchInput.value = '';
+              
+              // Insert selected song at position 1 and make it draggable
+              this.insertSelectedSongInQueue(song, queuePositionList, startPosition, (position, price) => {
+                selectedPosition = position;
+                selectedPrice = price;
+                selectedPositionNum.textContent = position;
+                positionCostDisplay.textContent = `$${(price / 100).toFixed(2)}`;
+                this.updateConfirmButton();
+              });
+            });
+          }, 300);
         });
+
+        // Create vertical queue position list (initially without selected song)
+        this.createVerticalPositionList(startPosition, queuePositionList, (position, price) => {
+          selectedPosition = position;
+          selectedPrice = price;
+          selectedPositionNum.textContent = position;
+          positionCostDisplay.textContent = `$${(price / 100).toFixed(2)}`;
+          this.updateConfirmButton();
+        });
+
+        // Update confirm button state
+        this.updateConfirmButton = () => {
+          if (selectedSong && selectedPosition && selectedPrice !== null) {
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+            confirmBtn.textContent = `Add to Position ${selectedPosition} • $${(selectedPrice / 100).toFixed(2)}`;
+          } else {
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.5';
+            if (!selectedSong && !selectedPosition) {
+              confirmBtn.textContent = 'Select song and position';
+            } else if (!selectedSong) {
+              confirmBtn.textContent = 'Select a song';
+            } else {
+              confirmBtn.textContent = 'Select a position';
+            }
+          }
+        };
+
+        // Confirm jump ahead
+        confirmBtn.addEventListener('click', () => {
+          if (selectedSong && selectedPosition && selectedPrice !== null) {
+            this.addSongAndPay(selectedSong, selectedPosition, selectedPrice);
+            modal.remove();
+          }
+        });
+      }
+
+      insertSelectedSongInQueue(song, container, startPosition, onPositionSelect) {
+        // Clear the container and rebuild with selected song at position 1
+        container.innerHTML = '';
+        
+        const startPos = parseInt(startPosition);
+        
+        // Store the starting position on the container for renumbering
+        container.setAttribute('data-start-position', startPos);
+        
+        // Get current queue items from the page
+        const currentQueueItems = Array.from(document.querySelectorAll('.song-card')).map((card, index) => ({
+          position: index + 1,
+          title: card.querySelector('.song-title')?.textContent || '',
+          artist: card.querySelector('.song-artist')?.textContent || '',
+          cover: card.querySelector('.song-cover img')?.src || ''
+        }));
+
+        // Create draggable selected song item at position 1
+        const selectedSongItem = this.createDraggableSongItem(song, startPos, onPositionSelect);
+        selectedSongItem.setAttribute('data-is-new-song', 'true');
+        container.appendChild(selectedSongItem);
+
+        // Create the rest of the queue positions with current songs
+        for (let i = 0; i < 9; i++) {
+          const visualPosition = startPos + i + 1;
+          const currentSong = currentQueueItems[i]; // Direct index, not position-based lookup
+          
+          const positionItem = this.createPositionItem(visualPosition, currentSong, false);
+          container.appendChild(positionItem);
+
+          // Load price for this position
+          this.loadPositionPrice(positionItem, visualPosition, i + 1);
+        }
+
+        // Initialize drag and drop
+        this.initializeDragAndDrop(container, onPositionSelect);
+        
+        // Auto-select position 1 and load its price
+        fetch(`/songs/price_preview?position=${startPos}`)
+          .then(res => res.json())
+          .then(data => {
+            selectedSongItem.setAttribute('data-price', data.price_cents);
+            const priceEl = selectedSongItem.querySelector('.position-price');
+            if (priceEl) {
+              priceEl.textContent = `$${(data.price_cents / 100).toFixed(2)}`;
+            }
+            onPositionSelect(startPos, data.price_cents);
+          });
+      }
+
+      createDraggableSongItem(song, position, onPositionSelect) {
+        const songItem = document.createElement('div');
+        songItem.className = 'queue-position-item draggable-song';
+        songItem.setAttribute('draggable', 'true');
+        songItem.setAttribute('data-position', position);
+        songItem.setAttribute('data-is-selected-song', 'true');
+        songItem.setAttribute('data-spotify-id', song.spotify_id || '');
+        songItem.setAttribute('data-duration-ms', song.duration_ms || '');
+        songItem.setAttribute('data-preview-url', song.preview_url || '');
+        songItem.setAttribute('data-title', song.title);
+        songItem.setAttribute('data-artist', song.artist);
+        songItem.setAttribute('data-cover', song.cover_url);
+        songItem.style.cssText = `
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem;
+          margin-bottom: 0.5rem;
+          background: rgba(29, 185, 84, 0.15);
+          border: 2px solid #1db954;
+          border-radius: 0.5rem;
+          cursor: move;
+          transition: all 0.2s;
+        `;
+
+        songItem.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0;">
+            <div class="position-badge" style="
+              width: 32px;
+              height: 32px;
+              background: rgba(29, 185, 84, 0.3);
+              border: 1px solid #1db954;
+              border-radius: 0.25rem;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 600;
+              color: #1db954;
+              font-size: 0.875rem;
+              flex-shrink: 0;
+            ">${position}</div>
+            <div style="
+              width: 40px;
+              height: 40px;
+              border-radius: 0.25rem;
+              overflow: hidden;
+              background: #222;
+              flex-shrink: 0;
+            ">
+              <img src="${song.cover_url}" alt="${song.title}" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div class="song-title-text" style="font-size: 0.875rem; font-weight: 600; color: #1db954; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${song.title}</div>
+              <div class="song-artist-text" style="font-size: 0.75rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${song.artist}</div>
+            </div>
+            <div style="color: #888; font-size: 1.25rem; margin-left: 0.5rem;">⋮⋮</div>
+          </div>
+          <div style="
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1db954;
+            flex-shrink: 0;
+            margin-left: 0.5rem;
+          " class="position-price">...</div>
+        `;
+
+        // Load initial price
+        fetch(`/songs/price_preview?position=${position}`)
+          .then(res => res.json())
+          .then(data => {
+            const priceEl = songItem.querySelector('.position-price');
+            if (priceEl) {
+              priceEl.textContent = `$${(data.price_cents / 100).toFixed(2)}`;
+            }
+            songItem.setAttribute('data-price', data.price_cents);
+          });
+
+        return songItem;
+      }
+
+      createPositionItem(position, currentSong, isClickable = true) {
+        const positionItem = document.createElement('div');
+        positionItem.className = 'queue-position-item drop-zone';
+        positionItem.setAttribute('data-position', position);
+        positionItem.style.cssText = `
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem;
+          margin-bottom: 0.5rem;
+          background: #1a1a1a;
+          border: 2px solid transparent;
+          border-radius: 0.5rem;
+          cursor: ${isClickable ? 'pointer' : 'default'};
+          transition: all 0.2s;
+        `;
+
+        if (currentSong) {
+          positionItem.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0;">
+              <div class="position-badge" style="
+                width: 32px;
+                height: 32px;
+                background: rgba(29, 185, 84, 0.1);
+                border: 1px solid rgba(29, 185, 84, 0.3);
+                border-radius: 0.25rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                color: #1db954;
+                font-size: 0.875rem;
+                flex-shrink: 0;
+              ">${position}</div>
+              <div style="
+                width: 40px;
+                height: 40px;
+                border-radius: 0.25rem;
+                overflow: hidden;
+                background: #222;
+                flex-shrink: 0;
+              ">
+                <img src="${currentSong.cover}" alt="${currentSong.title}" style="width: 100%; height: 100%; object-fit: cover;">
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 0.875rem; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${currentSong.title}</div>
+                <div style="font-size: 0.75rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${currentSong.artist}</div>
+              </div>
+            </div>
+            <div style="
+              font-size: 0.875rem;
+              font-weight: 600;
+              color: #1db954;
+              flex-shrink: 0;
+              margin-left: 0.5rem;
+            " class="position-price">...</div>
+          `;
+        } else {
+          positionItem.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+              <div class="position-badge" style="
+                width: 32px;
+                height: 32px;
+                background: rgba(29, 185, 84, 0.1);
+                border: 1px solid rgba(29, 185, 84, 0.3);
+                border-radius: 0.25rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                color: #1db954;
+                font-size: 0.875rem;
+                flex-shrink: 0;
+              ">${position}</div>
+              <div style="
+                width: 40px;
+                height: 40px;
+                border-radius: 0.25rem;
+                background: #222;
+                border: 1px dashed #444;
+                flex-shrink: 0;
+              "></div>
+              <div>
+                <div style="font-size: 0.875rem; font-weight: 500; color: #fff;">Position ${position}</div>
+                <div style="font-size: 0.75rem; color: #888;">Loading price...</div>
+              </div>
+            </div>
+            <div style="
+              font-size: 0.875rem;
+              font-weight: 600;
+              color: #1db954;
+              flex-shrink: 0;
+            " class="position-price">...</div>
+          `;
+        }
+
+        return positionItem;
+      }
+
+      loadPositionPrice(positionItem, position, index) {
+        fetch(`/songs/price_preview?position=${position}`)
+          .then(res => res.json())
+          .then(data => {
+            const priceEl = positionItem.querySelector('.position-price');
+            priceEl.textContent = `$${(data.price_cents / 100).toFixed(2)}`;
+            positionItem.setAttribute('data-price', data.price_cents);
+            
+            // Update description for empty slots
+            const descEl = positionItem.querySelector('div:last-of-type > div:last-child');
+            if (descEl && descEl.textContent.includes('Loading')) {
+              descEl.textContent = `Skip ${index} ${index === 1 ? 'song' : 'songs'}`;
+            }
+          })
+          .catch(err => {
+            const priceEl = positionItem.querySelector('.position-price');
+            priceEl.textContent = 'Error';
+            console.error('Error loading price for position', position, err);
+          });
+      }
+
+      initializeDragAndDrop(container, onPositionSelect) {
+        let draggedElement = null;
+        let draggedSongData = null;
+
+        // Drag start
+        container.addEventListener('dragstart', (e) => {
+          if (e.target.classList.contains('draggable-song')) {
+            draggedElement = e.target;
+            // Store song data before drag
+            const titleEl = e.target.querySelector('div:nth-child(1) > div:nth-child(3) > div:nth-child(1)');
+            const artistEl = e.target.querySelector('div:nth-child(1) > div:nth-child(3) > div:nth-child(2)');
+            const imgEl = e.target.querySelector('img');
+            
+            draggedSongData = {
+              title: titleEl ? titleEl.textContent : '',
+              artist: artistEl ? artistEl.textContent : '',
+              cover: imgEl ? imgEl.src : '',
+              spotify_id: e.target.getAttribute('data-spotify-id'),
+              duration_ms: e.target.getAttribute('data-duration-ms'),
+              preview_url: e.target.getAttribute('data-preview-url')
+            };
+            
+            e.target.style.opacity = '0.5';
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', e.target.innerHTML);
+          }
+        });
+
+        // Drag end
+        container.addEventListener('dragend', (e) => {
+          if (e.target.classList.contains('draggable-song')) {
+            e.target.style.opacity = '1';
+          }
+          // Clear all drop zone highlights
+          container.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.style.borderColor = 'transparent';
+            zone.style.background = '#1a1a1a';
+          });
+        });
+
+        // Drag over
+        container.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          const dropZone = e.target.closest('.drop-zone');
+          if (dropZone && draggedElement) {
+            e.dataTransfer.dropEffect = 'move';
+            // Highlight drop zone
+            dropZone.style.borderColor = '#1db954';
+            dropZone.style.background = 'rgba(29, 185, 84, 0.1)';
+          }
+        });
+
+        // Drag leave
+        container.addEventListener('dragleave', (e) => {
+          const dropZone = e.target.closest('.drop-zone');
+          if (dropZone) {
+            dropZone.style.borderColor = 'transparent';
+            dropZone.style.background = '#1a1a1a';
+          }
+        });
+
+        // Drop
+        container.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const dropZone = e.target.closest('.drop-zone');
+          
+          if (dropZone && draggedElement && draggedSongData) {
+            // Reset all drop zone styling
+            container.querySelectorAll('.drop-zone').forEach(zone => {
+              zone.style.borderColor = 'transparent';
+              zone.style.background = '#1a1a1a';
+            });
+
+            // Get the new position where we want to drop
+            const dropPosition = parseInt(dropZone.getAttribute('data-position'));
+            
+            // Remove the dragged element from its current position
+            const currentPosition = parseInt(draggedElement.getAttribute('data-position'));
+            draggedElement.remove();
+            
+            // Get all remaining items
+            const allItems = Array.from(container.querySelectorAll('.queue-position-item'));
+            
+            // Find the index where we should insert (before the drop zone)
+            const dropIndex = allItems.findIndex(item => 
+              parseInt(item.getAttribute('data-position')) === dropPosition
+            );
+            
+            // Insert at the correct position
+            if (dropIndex >= 0 && dropIndex < allItems.length) {
+              container.insertBefore(draggedElement, allItems[dropIndex]);
+            } else {
+              container.appendChild(draggedElement);
+            }
+            
+            // Renumber all items sequentially
+            this.renumberQueuePositions(container);
+            
+            // Get the new position of the dragged element
+            const newPosition = parseInt(draggedElement.getAttribute('data-position'));
+            
+            // Fetch new price for the selected song's new position
+            fetch(`/songs/price_preview?position=${newPosition}`)
+              .then(res => res.json())
+              .then(data => {
+                const priceEl = draggedElement.querySelector('.position-price');
+                if (priceEl) {
+                  priceEl.textContent = `$${(data.price_cents / 100).toFixed(2)}`;
+                }
+                draggedElement.setAttribute('data-price', data.price_cents);
+                onPositionSelect(newPosition, data.price_cents);
+                
+                // Show debug info
+                this.showPricingDebug(data.factors);
+              });
+          }
+        });
+      }
+
+      renumberQueuePositions(container) {
+        const allItems = container.querySelectorAll('.queue-position-item');
+        
+        // Get the starting position from the container
+        const startPos = parseInt(container.getAttribute('data-start-position')) || 1;
+        
+        allItems.forEach((item, index) => {
+          const position = startPos + index;
+          item.setAttribute('data-position', position);
+          
+          // Update position badge (use class selector for reliability)
+          const badge = item.querySelector('.position-badge');
+          if (badge) {
+            badge.textContent = position;
+          }
+        });
+      }
+
+      createVerticalPositionList(startPosition, container, onPositionSelect) {
+        const startPos = parseInt(startPosition);
+        
+        // Get current queue items from the page
+        const currentQueueItems = Array.from(document.querySelectorAll('.song-card')).map((card, index) => ({
+          position: index + 1,
+          title: card.querySelector('.song-title')?.textContent || '',
+          artist: card.querySelector('.song-artist')?.textContent || '',
+          cover: card.querySelector('.song-cover img')?.src || ''
+        }));
+
+        // Create 10 position items vertically
+        for (let i = 0; i < 10; i++) {
+          const position = startPos + i;
+          const currentSong = currentQueueItems.find(item => item.position === position);
+          
+          const positionItem = document.createElement('div');
+          positionItem.className = 'queue-position-item';
+          positionItem.setAttribute('data-position', position);
+          positionItem.style.cssText = `
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #1a1a1a;
+            border: 2px solid transparent;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+          `;
+
+          if (currentSong) {
+            // Show existing song with album art
+            positionItem.innerHTML = `
+              <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0;">
+                <div style="
+                  width: 32px;
+                  height: 32px;
+                  background: rgba(29, 185, 84, 0.1);
+                  border: 1px solid rgba(29, 185, 84, 0.3);
+                  border-radius: 0.25rem;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-weight: 600;
+                  color: #1db954;
+                  font-size: 0.875rem;
+                  flex-shrink: 0;
+                ">${position}</div>
+                <div style="
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 0.25rem;
+                  overflow: hidden;
+                  background: #222;
+                  flex-shrink: 0;
+                ">
+                  <img src="${currentSong.cover}" alt="${currentSong.title}" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-size: 0.875rem; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${currentSong.title}</div>
+                  <div style="font-size: 0.75rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${currentSong.artist}</div>
+                </div>
+              </div>
+              <div style="
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: #1db954;
+                flex-shrink: 0;
+                margin-left: 0.5rem;
+              " class="position-price">...</div>
+            `;
+          } else {
+            // Empty position slot
+            positionItem.innerHTML = `
+              <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+                <div style="
+                  width: 32px;
+                  height: 32px;
+                  background: rgba(29, 185, 84, 0.1);
+                  border: 1px solid rgba(29, 185, 84, 0.3);
+                  border-radius: 0.25rem;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-weight: 600;
+                  color: #1db954;
+                  font-size: 0.875rem;
+                  flex-shrink: 0;
+                ">${position}</div>
+                <div style="
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 0.25rem;
+                  background: #222;
+                  border: 1px dashed #444;
+                  flex-shrink: 0;
+                "></div>
+                <div>
+                  <div style="font-size: 0.875rem; font-weight: 500; color: #fff;">Position ${position}</div>
+                  <div style="font-size: 0.75rem; color: #888;">Loading price...</div>
+                </div>
+              </div>
+              <div style="
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: #1db954;
+                flex-shrink: 0;
+              " class="position-price">...</div>
+            `;
+          }
+
+          // Hover effect
+          positionItem.addEventListener('mouseenter', () => {
+            if (!positionItem.classList.contains('selected')) {
+              positionItem.style.background = '#222';
+              positionItem.style.borderColor = 'rgba(255,255,255,0.1)';
+            }
+          });
+
+          positionItem.addEventListener('mouseleave', () => {
+            if (!positionItem.classList.contains('selected')) {
+              positionItem.style.background = '#1a1a1a';
+              positionItem.style.borderColor = 'transparent';
+            }
+          });
+
+          // Click handler
+          positionItem.addEventListener('click', () => {
+            // Remove selection from all items
+            container.querySelectorAll('.queue-position-item').forEach(item => {
+              item.classList.remove('selected');
+              item.style.background = '#1a1a1a';
+              item.style.borderColor = 'transparent';
+            });
+
+            // Select this item
+            positionItem.classList.add('selected');
+            positionItem.style.background = 'rgba(29, 185, 84, 0.15)';
+            positionItem.style.borderColor = '#1db954';
+
+            // Get price and callback
+            const priceAttr = positionItem.getAttribute('data-price');
+            if (priceAttr) {
+              onPositionSelect(position, parseInt(priceAttr));
+            }
+          });
+
+          container.appendChild(positionItem);
+
+          // Load price for this position
+          fetch(`/songs/price_preview?position=${position}`)
+            .then(res => res.json())
+            .then(data => {
+              const priceEl = positionItem.querySelector('.position-price');
+              priceEl.textContent = `$${(data.price_cents / 100).toFixed(2)}`;
+              
+              // Update description for empty slots
+              if (!currentSong) {
+                const descEl = positionItem.querySelector('div:last-of-type > div:last-child');
+                if (descEl) {
+                  descEl.textContent = `${i === 0 ? 'Next up' : `Skip ${i} ${i === 1 ? 'song' : 'songs'}`}`;
+                }
+              }
+              
+              // Store price on element
+              positionItem.setAttribute('data-price', data.price_cents);
+            })
+            .catch(err => {
+              const priceEl = positionItem.querySelector('.position-price');
+              priceEl.textContent = 'Error';
+              console.error('Error loading price for position', position, err);
+            });
+        }
+      }
+
+      async searchSongs(query, resultsContainer, onSelect) {
+        try {
+          // Show loading state
+          resultsContainer.innerHTML = '<div style="color: #888; padding: 0.75rem; text-align: center; font-size: 0.875rem;">Searching...</div>';
+          
+          // Use server-side search endpoint (same as main search page)
+          const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Search request failed');
+          }
+          
+          const data = await response.json();
+
+          resultsContainer.innerHTML = '';
+
+          if (data.results && data.results.length > 0) {
+            data.results.forEach(song => {
+              const resultEl = document.createElement('div');
+              resultEl.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.5rem;
+                border: 1px solid #444;
+                border-radius: 0.375rem;
+                margin-bottom: 0.5rem;
+                cursor: pointer;
+                background: #2a2a2a;
+                transition: all 0.2s;
+              `;
+              
+              resultEl.innerHTML = `
+                <div style="
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 0.25rem;
+                  overflow: hidden;
+                  background: #222;
+                  flex-shrink: 0;
+                ">
+                  <img src="${song.cover_url || ''}" alt="${song.title}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.style.background='#333'">
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-size: 0.875rem; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${song.title}</div>
+                  <div style="font-size: 0.75rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${song.artist}</div>
+                </div>
+              `;
+              
+              resultEl.addEventListener('click', () => {
+                onSelect(song);
+                // Clear search results after selection
+                resultsContainer.innerHTML = '';
+              });
+              resultEl.addEventListener('mouseover', () => {
+                resultEl.style.background = '#3a3a3a';
+                resultEl.style.borderColor = '#1db954';
+              });
+              resultEl.addEventListener('mouseout', () => {
+                resultEl.style.background = '#2a2a2a';
+                resultEl.style.borderColor = '#444';
+              });
+              resultsContainer.appendChild(resultEl);
+            });
+          } else {
+            resultsContainer.innerHTML = '<div style="color: #666; padding: 0.75rem; text-align: center; font-size: 0.875rem;">No songs found. Try a different search.</div>';
+          }
+        } catch (error) {
+          console.error('Search error:', error);
+          resultsContainer.innerHTML = '<div style="color: #f87171; padding: 0.75rem; text-align: center; font-size: 0.875rem;">Search failed. Please try again.</div>';
+        }
+      }
+
+      showPricingDebug(factors) {
+        const debugDiv = document.getElementById('pricing-debug');
+        const debugContent = document.getElementById('debug-content');
+        
+        if (factors && debugDiv && debugContent) {
+          debugDiv.style.display = 'block';
+          
+          // Check if position factor looks wrong (should be < 4.0 with new formula)
+          const positionFactor = factors.position_factor || 1.0;
+          const isOldFormula = positionFactor > 4.0;
+          
+          debugContent.innerHTML = `
+            ${isOldFormula ? '<div style="color: #ef4444; font-weight: 600; margin-bottom: 0.5rem;">⚠️ OLD PRICING CODE RUNNING - RESTART RAILS SERVER!</div>' : ''}
+            <div>Active Users: ${factors.active_users || 0}</div>
+            <div>Queue Velocity: ${factors.queue_velocity || 0} songs/min</div>
+            <div>Queue Length: ${factors.queue_length || 0}</div>
+            <div>Base Price: $${((factors.base_price_cents || 100) / 100).toFixed(2)}</div>
+            <div>Venue Multiplier: ${factors.venue_multiplier || 1.0}x</div>
+            <div>Time Factor: ${factors.time_factor || 1.0}x</div>
+            <div style="${isOldFormula ? 'color: #ef4444; font-weight: 600;' : ''}">Position Factor: ${positionFactor.toFixed(4)}x ${isOldFormula ? '(SHOULD BE ~3x)' : ''}</div>
+          `;
+        }
+      }
+
+      async addSongAndPay(song, position, price) {
+        try {
+          // Create a temporary form to submit the song
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '/queue_items';
+          form.style.display = 'none';
+
+          // Add CSRF token
+          const csrfToken = document.querySelector('[name="csrf-token"]').content;
+          const csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = 'authenticity_token';
+          csrfInput.value = csrfToken;
+          form.appendChild(csrfInput);
+
+          // Add song data
+          const fields = {
+            'spotify_id': song.spotify_id,
+            'title': song.title,
+            'artist': song.artist,
+            'cover_url': song.cover_url,
+            'duration_ms': song.duration_ms,
+            'preview_url': song.preview_url,
+            'desired_position': position,
+            'paid_amount_cents': price
+          };
+
+          Object.keys(fields).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = fields[key] || '';
+            form.appendChild(input);
+          });
+
+          document.body.appendChild(form);
+          form.submit();
+        } catch (error) {
+          console.error('Error adding song:', error);
+          alert('Failed to add song. Please try again.');
+        }
       }
     }
 
@@ -839,6 +1795,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       const player = new QueuePlayer();
       const voting = new VotingSystem();
+      const jumpAhead = new JumpAheadSystem();
       
       // Auto-refresh queue every 30 seconds for real-time updates
       setInterval(() => {

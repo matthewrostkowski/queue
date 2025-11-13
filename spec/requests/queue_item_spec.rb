@@ -8,9 +8,19 @@ RSpec.describe QueueItem, type: :model do
     expect(qi).to be_valid
   end
 
-  it "orders by vote_score desc then created_at asc" do
-    high = QueueItem.create!(queue_session: session, title: "High", artist: "A", vote_score: 3, created_at: 2.minutes.ago)
-    low  = QueueItem.create!(queue_session: session, title: "Low",  artist: "A", vote_score: 1, created_at: 1.minute.ago)
-    expect(QueueItem.by_votes).to eq([high, low])
+  it "orders by base_priority asc, then created_at asc (for display)" do
+    # Create items with different priorities - votes should not affect display order
+    paid_item = QueueItem.create!(queue_session: session, title: "Paid", artist: "A", base_priority: 1, vote_score: 1, created_at: 3.minutes.ago)
+    high_vote = QueueItem.create!(queue_session: session, title: "High Vote", artist: "A", base_priority: 2, vote_score: 3, created_at: 2.minutes.ago)
+    low_vote = QueueItem.create!(queue_session: session, title: "Low Vote", artist: "A", base_priority: 2, vote_score: 1, created_at: 1.minute.ago)
+    expect(QueueItem.by_position).to eq([paid_item, high_vote, low_vote])
+  end
+
+  it "orders by base_priority asc, then vote_score desc, then created_at asc (for playback)" do
+    # Create items with different priorities and vote scores
+    paid_item = QueueItem.create!(queue_session: session, title: "Paid", artist: "A", base_priority: 1, vote_score: 1, created_at: 3.minutes.ago)
+    high_vote = QueueItem.create!(queue_session: session, title: "High Vote", artist: "A", base_priority: 2, vote_score: 3, created_at: 2.minutes.ago)
+    low_vote = QueueItem.create!(queue_session: session, title: "Low Vote", artist: "A", base_priority: 2, vote_score: 1, created_at: 1.minute.ago)
+    expect(QueueItem.by_votes).to eq([paid_item, high_vote, low_vote])
   end
 end

@@ -119,7 +119,7 @@
             </button>
 
             <!-- Add to Queue form -->
-            <form action="/queue_items" method="post" style="margin:0;">
+            <form action="/queue_items" method="post" style="margin:0;" class="queue-form" data-track-id="<%= track[:spotify_id] %>">
               <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
               <input type="hidden" name="spotify_id" value="<%= track[:spotify_id] %>" />
               <input type="hidden" name="title" value="<%= track[:title] %>" />
@@ -128,22 +128,30 @@
               <input type="hidden" name="duration_ms" value="<%= track[:duration_ms] %>" />
               <input type="hidden" name="preview_url" value="<%= track[:preview_url] %>" />
               <input type="hidden" name="user_display_name" value="Guest" />
+              <input type="hidden" name="desired_position" value="" class="desired-position" />
+              <input type="hidden" name="paid_amount_cents" value="" class="paid-amount-cents" />
 
-              <button
-                type="submit"
-                style="
-                  width:80px;
-                  background:#1db954;
-                  border:none;
-                  border-radius:0.6rem;
-                  color:#000;
-                  font-size:0.7rem;
-                  font-weight:600;
-                  padding:0.4rem 0.6rem;
-                  cursor:pointer;
-                ">
-                + Queue
-              </button>
+              <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                <button
+                  type="button"
+                  class="queue-btn"
+                  style="
+                    width:80px;
+                    background:#1db954;
+                    border:none;
+                    border-radius:0.6rem;
+                    color:#000;
+                    font-size:0.7rem;
+                    font-weight:600;
+                    padding:0.4rem 0.6rem;
+                    cursor:pointer;
+                  ">
+                  + Queue
+                </button>
+                <div style="font-size:0.65rem;color:#1db954;text-align:center;">
+                  $<span class="position-price" data-track-id="<%= track[:spotify_id] %>">...</span>
+                </div>
+              </div>
             </form>
           </div>
 
@@ -176,6 +184,7 @@
 (function() {
   let currentAudioEl = null;
   let currentBtnEl = null;
+  let priceData = {};
 
   function stopCurrentAudio() {
     if (currentAudioEl) {
@@ -225,6 +234,212 @@
       }
     });
   });
+
+  // Dynamic pricing functionality
+  function updatePrices() {
+    fetch('/songs/price_preview?position=next')
+      .then(res => res.json())
+      .then(data => {
+        priceData.nextPosition = data;
+        document.querySelectorAll('.position-price').forEach(el => {
+          el.textContent = (data.price_cents / 100).toFixed(2);
+        });
+        
+        // Update hidden fields
+        document.querySelectorAll('.desired-position').forEach(el => {
+          el.value = data.position;
+        });
+        document.querySelectorAll('.paid-amount-cents').forEach(el => {
+          el.value = data.price_cents;
+        });
+      })
+      .catch(err => console.error('Failed to fetch prices:', err));
+  }
+
+  // Update prices on load
+  updatePrices();
+  
+  // Update prices every 30 seconds
+  setInterval(updatePrices, 30000);
+  
+  // Set initial values to prevent NaN
+  document.querySelectorAll('.paid-amount-cents').forEach(el => {
+    if (!el.value || el.value === 'NaN') {
+      el.value = '100'; // Default to $1.00
+    }
+  });
+
+  // Handle queue button clicks
+  document.querySelectorAll('.queue-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const form = btn.closest('form');
+      const trackId = form.getAttribute('data-track-id');
+      const trackTitle = form.querySelector('input[name="title"]').value;
+      const trackArtist = form.querySelector('input[name="artist"]').value;
+      
+      // Fetch current pricing for next available positions (like the preview)
+      Promise.all([
+        fetch('/songs/price_preview?position=next').then(res => res.json()),
+        fetch('/songs/price_preview?position=next_plus_1').then(res => res.json()),
+        fetch('/songs/price_preview?position=next_plus_2').then(res => res.json())
+      ]).then(([nextPos, nextPlus1, nextPlus2]) => {
+        showPositionModal(form, trackTitle, trackArtist, [nextPos, nextPlus1, nextPlus2]);
+      }).catch(err => {
+        console.error('Failed to fetch position prices:', err);
+        alert('Error loading prices. Please try again.');
+      });
+    });
+  });
+  
+  function showPositionModal(form, title, artist, positions) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('position-modal');
+    if (existingModal) existingModal.remove();
+    
+    // Get user balance (assuming it's available in the page)
+    const userBalance = <%= current_user ? current_user.balance_cents : 0 %>;
+    
+    // Create modal HTML
+    const modalHTML = `
+      <div id="position-modal" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      ">
+        <div style="
+          background: #1a1a1a;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 1rem;
+          max-width: 500px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+        ">
+          <div style="padding: 2rem;">
+            <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">Choose Queue Position</h2>
+            <p style="color: #9ca3af; margin-bottom: 1.5rem;">
+              ${title} • ${artist}
+            </p>
+            
+            <div class="balance-indicator" style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(29, 185, 84, 0.1); border: 1px solid rgba(29, 185, 84, 0.3); border-radius: 0.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.875rem; color: #9ca3af;">Your Balance:</span>
+                <span style="font-size: 1rem; font-weight: 600; color: #1db954;">$${(userBalance / 100).toFixed(2)}</span>
+              </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              ${positions.map((pos, idx) => {
+                const canAfford = userBalance >= pos.price_cents;
+                return `
+                <button class="position-option" data-position="${pos.position}" data-price="${pos.price_cents}" 
+                  ${!canAfford ? 'disabled' : ''}
+                  style="
+                  background: ${canAfford ? 'rgba(29, 185, 84, 0.1)' : 'rgba(107, 114, 128, 0.1)'};
+                  border: 1px solid ${canAfford ? 'rgba(29, 185, 84, 0.3)' : 'rgba(107, 114, 128, 0.3)'};
+                  border-radius: 0.75rem;
+                  padding: 1rem 1.25rem;
+                  text-align: left;
+                  cursor: ${canAfford ? 'pointer' : 'not-allowed'};
+                  transition: all 0.2s;
+                  position: relative;
+                  overflow: hidden;
+                  opacity: ${canAfford ? '1' : '0.6'};
+                " ${canAfford ? `onmouseover="this.style.background='rgba(29, 185, 84, 0.2)'; this.style.borderColor='#1db954';" onmouseout="this.style.background='rgba(29, 185, 84, 0.1)'; this.style.borderColor='rgba(29, 185, 84, 0.3)';"` : ''}>
+                  <div style="display: flex; justify-content: between; align-items: center;">
+                    <div style="flex: 1;">
+                      <div style="font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem;">
+                        ${idx === 0 ? '⚡ Play Next' : idx === 1 ? '⏭️ Skip 1 Song' : '⏭️ Skip 2 Songs'}
+                      </div>
+                      <div style="font-size: 0.875rem; color: #9ca3af;">
+                        Position ${pos.position} in queue
+                      </div>
+                    </div>
+                    <div style="text-align: right; margin-left: 2rem;">
+                      <div style="font-size: 1.5rem; font-weight: bold; color: #1db954;">
+                        ${pos.price_display}
+                      </div>
+                      ${idx === 0 ? '<div style="font-size: 0.75rem; color: #f59e0b;">Most Popular</div>' : ''}
+                    </div>
+                  </div>
+                  ${pos.factors ? `
+                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: #6b7280;">
+                      ${pos.factors.active_users > 1 ? `${pos.factors.active_users} active users • ` : ''}
+                      ${pos.factors.queue_length} songs in queue
+                    </div>
+                  ` : ''}
+                  ${!canAfford ? `
+                    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #ef4444;">
+                      Insufficient balance
+                    </div>
+                  ` : ''}
+                </button>
+              `;
+              }).join('')}
+            </div>
+            
+            <button id="cancel-position" style="
+              width: 100%;
+              margin-top: 1rem;
+              padding: 0.75rem;
+              background: rgba(255,255,255,0.05);
+              border: 1px solid rgba(255,255,255,0.1);
+              border-radius: 0.5rem;
+              color: #9ca3af;
+              cursor: pointer;
+              transition: all 0.2s;
+            " onmouseover="this.style.background='rgba(255,255,255,0.1)';" onmouseout="this.style.background='rgba(255,255,255,0.05)';">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Add click handlers
+    document.querySelectorAll('.position-option').forEach(opt => {
+      opt.addEventListener('click', function() {
+        const position = this.getAttribute('data-position');
+        const price = this.getAttribute('data-price');
+        
+        // Update form fields
+        form.querySelector('.desired-position').value = position;
+        form.querySelector('.paid-amount-cents').value = price;
+        
+        // Remove modal
+        document.getElementById('position-modal').remove();
+        
+        // Submit form
+        form.submit();
+      });
+    });
+    
+    // Cancel button
+    document.getElementById('cancel-position').addEventListener('click', function() {
+      document.getElementById('position-modal').remove();
+    });
+    
+    // Click outside to close
+    document.getElementById('position-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.remove();
+      }
+    });
+  }
 
   // Clean up on page unload
   window.addEventListener("beforeunload", function() {

@@ -1,0 +1,126 @@
+<div class="max-w-6xl mx-auto">
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold mb-2"><%= @venue.name %></h1>
+      <p class="text-[color:var(--muted)]">Venue Details and Statistics</p>
+    </div>
+    <%= link_to "Edit Venue", edit_admin_venue_path(@venue), class: "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium bg-[color:var(--primary)] text-white hover:opacity-90 transition-all" %>
+  </div>
+
+  <!-- Venue Info Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div class="rounded-xl border border-white/10 bg-[color:var(--bg-elev)] p-6">
+      <h3 class="text-xs uppercase tracking-wider font-medium text-[color:var(--muted)] mb-2">Location</h3>
+      <p class="text-lg font-semibold"><%= @venue.location || "Not specified" %></p>
+    </div>
+    
+    <div class="rounded-xl border border-white/10 bg-[color:var(--bg-elev)] p-6">
+      <h3 class="text-xs uppercase tracking-wider font-medium text-[color:var(--muted)] mb-2">Capacity</h3>
+      <p class="text-lg font-semibold"><%= @venue.capacity || "Not specified" %></p>
+    </div>
+    
+    <div class="rounded-xl border border-white/10 bg-[color:var(--bg-elev)] p-6">
+      <h3 class="text-xs uppercase tracking-wider font-medium text-[color:var(--muted)] mb-2">Total Sessions</h3>
+      <p class="text-lg font-semibold"><%= @total_sessions %></p>
+    </div>
+  </div>
+
+  <!-- Pricing Settings Overview -->
+  <div class="rounded-2xl border border-white/10 bg-[color:var(--bg-elev)] shadow-lg p-8 mb-8">
+    <h2 class="text-xl font-semibold mb-4">Current Pricing Settings</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <h3 class="text-sm font-semibold text-[color:var(--muted)] mb-3">Basic Settings</h3>
+        <dl class="space-y-2">
+          <div class="flex justify-between">
+            <dt class="text-sm">Status:</dt>
+            <dd class="text-sm font-medium">
+              <% if @venue.pricing_enabled %>
+                <span class="text-green-400">Enabled</span>
+              <% else %>
+                <span class="text-gray-400">Disabled</span>
+              <% end %>
+            </dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-sm">Base Price:</dt>
+            <dd class="text-sm font-medium">$<%= '%.2f' % (@venue.base_price_cents / 100.0) %></dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-sm">Price Range:</dt>
+            <dd class="text-sm font-medium">$<%= '%.2f' % (@venue.min_price_cents / 100.0) %> - $<%= '%.2f' % (@venue.max_price_cents / 100.0) %></dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-sm">Multiplier:</dt>
+            <dd class="text-sm font-medium"><%= @venue.price_multiplier %>x</dd>
+          </div>
+        </dl>
+      </div>
+      
+      <div>
+        <h3 class="text-sm font-semibold text-[color:var(--muted)] mb-3">Peak Hours</h3>
+        <dl class="space-y-2">
+          <div class="flex justify-between">
+            <dt class="text-sm">Time Range:</dt>
+            <dd class="text-sm font-medium">
+              <%= @venue.peak_hours_start %>:00 - <%= @venue.peak_hours_end %>:00
+            </dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-sm">Peak Multiplier:</dt>
+            <dd class="text-sm font-medium"><%= @venue.peak_hours_multiplier %>x</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Sessions -->
+  <div class="rounded-2xl border border-white/10 bg-[color:var(--bg-elev)] shadow-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-white/10">
+      <h2 class="text-xl font-semibold">Active Sessions</h2>
+    </div>
+    
+    <% if @active_sessions.any? %>
+      <table class="w-full">
+        <thead class="bg-white/5 border-b border-white/10">
+          <tr>
+            <th class="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Session ID</th>
+            <th class="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Access Code</th>
+            <th class="text-center px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Songs</th>
+            <th class="text-center px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Active Users</th>
+            <th class="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Started</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5">
+          <% @active_sessions.each do |session| %>
+            <tr>
+              <td class="px-6 py-4 text-sm">#<%= session.id %></td>
+              <td class="px-6 py-4">
+                <span class="px-2 py-0.5 bg-[color:var(--primary)]/10 border border-[color:var(--primary)] rounded text-xs font-semibold text-[color:var(--primary)]">
+                  <%= session.access_code %>
+                </span>
+              </td>
+              <td class="px-6 py-4 text-center text-sm"><%= session.songs_count %></td>
+              <td class="px-6 py-4 text-center text-sm">
+                <%= DynamicPricingService.get_active_user_count(session) %>
+              </td>
+              <td class="px-6 py-4 text-sm">
+                <%= time_ago_in_words(session.created_at) %> ago
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="text-center py-12 px-6">
+        <p class="text-[color:var(--muted)]">No active sessions at this venue.</p>
+      </div>
+    <% end %>
+  </div>
+  
+  <div class="mt-8">
+    <%= link_to "← Back to Venues", admin_venues_path, class: "text-[color:var(--primary)] hover:underline" %>
+  </div>
+</div>

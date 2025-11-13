@@ -1,3 +1,5 @@
+require_relative '../services/dynamic_pricing_service'
+
 class SongsController < ApplicationController
   require 'net/http'
   require 'json'
@@ -14,21 +16,8 @@ class SongsController < ApplicationController
       end
       format.json do
         if @query.present?
-          # Search in database first
-          results = Song.where("LOWER(title) LIKE ? OR LOWER(artist) LIKE ?", 
-                               "%#{@query.downcase}%", "%#{@query.downcase}%")
-                        .limit(5)
-                        .map do |song|
-            {
-              id: song.id,
-              spotify_id: song.spotify_id,
-              title: song.title,
-              artist: song.artist,
-              cover_url: song.cover_url,
-              duration_ms: song.duration_ms,
-              preview_url: song.preview_url
-            }
-          end
+          # Search using Deezer API (same as HTML format)
+          results = search_deezer(@query)
           render json: { results: results }
         else
           render json: { results: [] }
@@ -45,7 +34,42 @@ class SongsController < ApplicationController
     @song = Song.find(params[:id])
   end
 
+  def price_preview
+    queue_session = current_queue_session
+    desired_position = params[:position]&.to_i || queue_session&.songs_count.to_i + 1
+
+    if params[:position] == 'next' || desired_position == 0
+      desired_position = queue_session ? queue_session.songs_count + 1 : 1
+    elsif params[:position] == 'next_plus_1'
+      desired_position = queue_session ? queue_session.songs_count + 2 : 2
+    elsif params[:position] == 'next_plus_2'
+      desired_position = queue_session ? queue_session.songs_count + 3 : 3
+    end
+
+    price_cents = DynamicPricingService.calculate_position_price(queue_session, desired_position)
+
+    render json: {
+      position: desired_position,
+      price_cents: price_cents,
+      price_display: "$#{'%.2f' % (price_cents / 100.0)}",
+      factors: DynamicPricingService.get_pricing_factors(queue_session, desired_position)
+    }
+  end
+
   private
+
+  def current_queue_session
+    # Get the active queue session or create a default one (same as queues_controller)
+    session = QueueSession.active.first || QueueSession.first
+
+    unless session
+      # Create a default venue and session if none exist
+      venue = Venue.first || Venue.create!(name: "Default Venue")
+      session = QueueSession.create!(venue: venue, is_active: true)
+    end
+
+    session
+  end
 
   def search_deezer(query)
     uri = URI("https://api.deezer.com/search")
