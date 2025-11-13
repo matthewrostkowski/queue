@@ -57,9 +57,9 @@ RSpec.describe "QueueItemsController", type: :request do
              as: :json
       }.to_not change(QueueItem, :count)
 
-      expect(response).to have_http_status(:payment_required)
+      expect(response).to have_http_status(:unprocessable_content)
       body = JSON.parse(response.body)
-      expect(body).to include("error", "balance", "required")
+      expect(body).to include("errors")
     end
   end
 

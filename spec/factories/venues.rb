@@ -16,6 +16,10 @@ FactoryBot.define do
       pricing_enabled { false }
     end
 
+    trait :with_pricing_enabled do
+      pricing_enabled { true }
+    end
+    
     trait :expensive do
       base_price_cents { 200 }
       price_multiplier { 1.5 }

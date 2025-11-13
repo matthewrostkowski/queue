@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_12_214423) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_13_022634) do
   create_table "balance_transactions", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "amount_cents", null: false
@@ -96,7 +96,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_12_214423) do
     t.integer "role", default: 0, null: false
     t.integer "balance_cents", default: 10000, null: false
     t.index ["balance_cents"], name: "index_users_on_balance_cents"
-    t.index ["canonical_email"], name: "index_users_on_canonical_email_unique", unique: true, where: "canonical_email IS NOT NULL /*application='Queuemusic'*/ /*application='Queuemusic'*/"
+    t.index ["canonical_email"], name: "index_users_on_canonical_email_unique", unique: true, where: "canonical_email IS NOT NULL /*application='Queuemusic'*/"
     t.index ["role"], name: "index_users_on_role"
   end
 

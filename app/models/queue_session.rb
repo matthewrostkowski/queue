@@ -23,7 +23,7 @@ class QueueSession < ApplicationRecord
     queue_items
       .where(played_at: nil)
       .includes(:song, :user)
-      .sort_by { |qi| -qi.score }
+      .sort_by { |qi| -qi.vote_score }
   end
 
   # Get the next track to play

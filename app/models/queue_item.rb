@@ -4,7 +4,7 @@ class QueueItem < ApplicationRecord
   belongs_to :user, optional: true
 
   # Validations
-  validates :status, inclusion: { in: %w[pending playing played] }, allow_nil: true
+  validates :status, inclusion: { in: %w[pending playing played cancelled] }, allow_nil: true
   
   # Make base_price_cents optional for test scenarios
   validates :base_price_cents, numericality: { greater_than: 0 }, allow_nil: true
