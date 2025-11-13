@@ -105,7 +105,7 @@ We built:
 * **Venue System:** Join venue queues via 6-digit codes
 * **User / Host / Admin Role System**
 * **Pricing Simulation**
-* **Testing:** RSpec tests + Cucumber scenarios - 100% passing
+* **Testing:** RSpec tests + Cucumber scenarios - 90%+ passing
 
 ---
 
