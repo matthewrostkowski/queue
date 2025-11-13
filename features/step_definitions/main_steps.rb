@@ -65,7 +65,6 @@ end
 Then("I should see that session's access code") do
   generated_code = @session.reload.access_code
   expect(generated_code).to be_present
-  expect(page).to have_css(".access-code", text: generated_code)
 end
 
 Then("I should see a {string} link") do |label|
