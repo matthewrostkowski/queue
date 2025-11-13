@@ -9,6 +9,7 @@ abort("The Rails environment is running in production mode!") if Rails.env.produ
 # return unless Rails.env.test?
 require 'rspec/rails'
 # Add additional requires below this line. Rails is not loaded until this point!
+require 'factory_bot_rails'
 
 # Requires supporting ruby files with custom matchers and macros, etc, in
 # spec/support/ and its subdirectories. Files matching `spec/**/*_spec.rb` are
@@ -35,6 +36,11 @@ rescue ActiveRecord::PendingMigrationError => e
   abort e.to_s.strip
 end
 RSpec.configure do |config|
+  # Include FactoryBot syntax methods
+  config.include FactoryBot::Syntax::Methods
+  # Include ActiveSupport testing helpers
+  config.include ActiveSupport::Testing::TimeHelpers
+
   def login_as(user)
     allow_any_instance_of(ApplicationController)
       .to receive(:current_user)
