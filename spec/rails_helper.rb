@@ -10,6 +10,7 @@ abort("The Rails environment is running in production mode!") if Rails.env.produ
 # return unless Rails.env.test?
 require 'rspec/rails'
 # Add additional requires below this line. Rails is not loaded until this point!
+require 'factory_bot_rails'
 
 # Requires supporting ruby files with custom matchers and macros, etc, in
 # spec/support/ and its subdirectories. Files matching `spec/**/*_spec.rb` are
@@ -37,7 +38,13 @@ rescue ActiveRecord::PendingMigrationError => e
 end
 
 RSpec.configure do |config|
-  # Helper used in request specs like queue_items_controller_spec, songs_controller_spec, etc.
+  # Include FactoryBot syntax methods (from dev)
+  config.include FactoryBot::Syntax::Methods
+
+  # Include ActiveSupport testing helpers (from dev)
+  config.include ActiveSupport::Testing::TimeHelpers
+
+  # Helper used in request specs like queue_items_controller_spec, songs_controller_spec, etc. (from feature branch)
   def login_as(user)
     Rails.logger.info "[TEST AUTH] login_as called for user id=#{user&.id.inspect} email=#{user&.email.inspect} display_name=#{user&.display_name.inspect}"
     allow_any_instance_of(ApplicationController)

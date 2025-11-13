@@ -32,10 +32,12 @@ RSpec.describe "QueueItemsController", type: :request do
   end
 
   describe "POST /queue_items" do
-    it "creates a queue item via JSON params" do
+    it "creates a queue item via search form params" do
       expect {
         post "/queue_items",
-             params: { queue_item: { song_id: song1.id, queue_session_id: qs.id, base_price: 3.99 } },
+             params: { spotify_id: song1.spotify_id, title: song1.title, artist: song1.artist,
+                      cover_url: song1.cover_url, duration_ms: song1.duration_ms, preview_url: song1.preview_url,
+                      paid_amount_cents: 300, desired_position: 1 },
              as: :json
       }.to change(QueueItem, :count).by(1)
 
@@ -44,12 +46,21 @@ RSpec.describe "QueueItemsController", type: :request do
       expect(body).to include("id", "price_for_display")
     end
 
-    it "creates a queue item when queue_item is JSON string (form hidden field case)" do
-      payload = { song_id: song2.id, queue_session_id: qs.id, base_price: 2.5 }.to_json
+    it "rejects creation when user has insufficient balance" do
+      # Set user balance to very low
+      user.update!(balance_cents: 50)
+
       expect {
-        post "/queue_items", params: { queue_item: payload }, as: :json
-      }.to change(QueueItem, :count).by(1)
-      expect(response).to have_http_status(:created)
+        post "/queue_items",
+             params: { spotify_id: song2.spotify_id, title: song2.title, artist: song2.artist,
+                      cover_url: song2.cover_url, duration_ms: song2.duration_ms, preview_url: song2.preview_url,
+                      paid_amount_cents: 300, desired_position: 1 },
+             as: :json
+      }.to_not change(QueueItem, :count)
+
+      expect(response).to have_http_status(:payment_required)
+      body = JSON.parse(response.body)
+      expect(body).to include("error", "balance", "required")
     end
   end
 

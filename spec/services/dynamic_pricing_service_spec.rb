@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe DynamicPricingService do
-  let(:venue) { create(:venue, :with_pricing_enabled) }
+  let(:venue) { create(:venue) }
   let(:queue_session) { create(:queue_session, venue: venue) }
   
   describe '.calculate_position_price' do
@@ -18,10 +18,10 @@ RSpec.describe DynamicPricingService do
         create(:queue_item, queue_session: queue_session, created_at: 1.minute.ago)
       end
       
-      it 'returns minimum price (1 cent)' do
-        price = described_class.calculate_position_price(queue_session, 1)
-        expect(price).to eq(venue.min_price_cents)
-      end
+    it 'returns position-adjusted price (position 1 = 3x base)' do
+      price = described_class.calculate_position_price(queue_session, 1)
+      expect(price).to be_within(20).of(300) # 100 * 3 (position factor), with small user factor
+    end
     end
     
     context 'with moderate demand (5 users, 10 songs)' do
@@ -66,10 +66,10 @@ RSpec.describe DynamicPricingService do
         end
       end
       
-      it 'triggers surge pricing' do
-        price = described_class.calculate_position_price(queue_session, 1)
-        expect(price).to be > 1000 # Surge pricing should kick in
-      end
+    it 'triggers surge pricing' do
+      price = described_class.calculate_position_price(queue_session, 1)
+      expect(price).to be > 300 # Surge pricing should kick in (more than base position price)
+    end
       
       it 'respects maximum price cap' do
         price = described_class.calculate_position_price(queue_session, 1)
@@ -100,19 +100,19 @@ RSpec.describe DynamicPricingService do
   end
   
   describe '.get_active_user_count' do
-    it 'counts unique users in last 5 minutes' do
+    it 'counts unique users in last 30 minutes' do
       user1 = create(:user)
       user2 = create(:user)
-      
+
       # Recent items
       create(:queue_item, queue_session: queue_session, user: user1, created_at: 1.minute.ago)
       create(:queue_item, queue_session: queue_session, user: user1, created_at: 2.minutes.ago)
       create(:queue_item, queue_session: queue_session, user: user2, created_at: 3.minutes.ago)
-      
+
       # Old item (should not count)
-      create(:queue_item, queue_session: queue_session, user: user1, created_at: 6.minutes.ago)
-      
-      expect(described_class.get_active_user_count(queue_session)).to eq(2)
+      create(:queue_item, queue_session: queue_session, user: user1, created_at: 45.minutes.ago)
+
+      expect(described_class.send(:get_active_user_count, queue_session)).to eq(2)
     end
   end
   
@@ -122,15 +122,15 @@ RSpec.describe DynamicPricingService do
       5.times do |i|
         create(:queue_item, queue_session: queue_session, created_at: (i * 2).minutes.ago)
       end
-      
-      expect(described_class.get_queue_velocity(queue_session)).to eq(0.5)
+
+      expect(described_class.send(:get_queue_velocity, queue_session)).to eq(0.5)
     end
-    
+
     it 'ignores songs older than 10 minutes' do
       create(:queue_item, queue_session: queue_session, created_at: 5.minutes.ago)
       create(:queue_item, queue_session: queue_session, created_at: 11.minutes.ago)
-      
-      expect(described_class.get_queue_velocity(queue_session)).to eq(0.1)
+
+      expect(described_class.send(:get_queue_velocity, queue_session)).to eq(0.1)
     end
   end
   
@@ -146,12 +146,12 @@ RSpec.describe DynamicPricingService do
       
       it 'returns 1.0 during off-peak hours' do
         allow(Time).to receive(:current).and_return(Time.zone.parse("14:00"))
-        expect(described_class.time_of_day_factor(venue)).to eq(1.0)
+        expect(described_class.send(:time_of_day_factor, venue)).to eq(1.0)
       end
-      
+
       it 'returns peak multiplier during peak hours' do
         allow(Time).to receive(:current).and_return(Time.zone.parse("20:00"))
-        expect(described_class.time_of_day_factor(venue)).to eq(1.5)
+        expect(described_class.send(:time_of_day_factor, venue)).to eq(1.5)
       end
     end
     
@@ -166,13 +166,13 @@ RSpec.describe DynamicPricingService do
       
       it 'handles midnight wraparound correctly' do
         allow(Time).to receive(:current).and_return(Time.zone.parse("23:30"))
-        expect(described_class.time_of_day_factor(venue)).to eq(2.0)
-        
+        expect(described_class.send(:time_of_day_factor, venue)).to eq(2.0)
+
         allow(Time).to receive(:current).and_return(Time.zone.parse("01:00"))
-        expect(described_class.time_of_day_factor(venue)).to eq(2.0)
-        
+        expect(described_class.send(:time_of_day_factor, venue)).to eq(2.0)
+
         allow(Time).to receive(:current).and_return(Time.zone.parse("03:00"))
-        expect(described_class.time_of_day_factor(venue)).to eq(1.0)
+        expect(described_class.send(:time_of_day_factor, venue)).to eq(1.0)
       end
     end
   end

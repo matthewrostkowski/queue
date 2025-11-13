@@ -20,6 +20,8 @@ group :development, :test do
 
   # Testing stack
   gem "rspec-rails"
+  gem "factory_bot_rails"
+  gem "faker"
   gem "cucumber-rails", require: false
   gem "capybara", "~> 3.40"
   gem "selenium-webdriver"
