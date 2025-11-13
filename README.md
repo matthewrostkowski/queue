@@ -126,10 +126,4 @@ If you have trouble navigating to specific pages, open:
 localhost:3000/<page-name>
 ```
 
-Example:
-
-```
-localhost:3000/host
-```
-
 
