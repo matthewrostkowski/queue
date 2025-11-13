@@ -13,18 +13,45 @@ class DynamicPricingService
       
       # Calculate multiplier based on all factors
       multiplier = calculate_base_multiplier(queue_session, desired_position)
+      multiplier_before_venue = multiplier
       
       # Apply venue multiplier
-      multiplier *= venue.price_multiplier if venue.price_multiplier
+      if venue.price_multiplier
+        multiplier *= venue.price_multiplier
+      end
+      multiplier_after_venue = multiplier
       
       # Apply time of day factor
-      multiplier *= time_of_day_factor(venue)
+      time_factor = time_of_day_factor(venue)
+      multiplier *= time_factor
+      multiplier_after_time = multiplier
       
       # Cap multiplier at 10x to prevent extreme prices
+      multiplier_before_cap = multiplier
       multiplier = [multiplier, 10.0].min
       
       # Calculate final price
       price = (base_price * multiplier).round
+      
+      # Log detailed pricing breakdown
+      Rails.logger.info "=" * 80
+      Rails.logger.info "PRICING CALCULATION for Position #{desired_position}"
+      Rails.logger.info "=" * 80
+      Rails.logger.info "Base Price: #{base_price} cents ($#{base_price / 100.0})"
+      Rails.logger.info "Active Users: #{get_active_user_count(queue_session)}"
+      Rails.logger.info "Queue Velocity: #{get_queue_velocity(queue_session).round(2)} songs/min"
+      Rails.logger.info "Queue Length: #{queue_session.songs_count}"
+      Rails.logger.info "-" * 80
+      Rails.logger.info "Multiplier after base factors: #{multiplier_before_venue.round(4)}"
+      Rails.logger.info "Venue multiplier: #{venue.price_multiplier || 1.0}"
+      Rails.logger.info "Multiplier after venue: #{multiplier_after_venue.round(4)}"
+      Rails.logger.info "Time of day factor: #{time_factor.round(4)}"
+      Rails.logger.info "Multiplier after time: #{multiplier_after_time.round(4)}"
+      Rails.logger.info "Multiplier before cap: #{multiplier_before_cap.round(4)}"
+      Rails.logger.info "Multiplier after 10x cap: #{multiplier.round(4)}"
+      Rails.logger.info "-" * 80
+      Rails.logger.info "FINAL PRICE: #{price} cents ($#{price / 100.0})"
+      Rails.logger.info "=" * 80
       
       # Apply venue min/max caps
       apply_venue_settings(price, venue)
@@ -37,29 +64,39 @@ class DynamicPricingService
       # Factor 1: Active users (priority 1)
       # Very modest increase - competition should matter but not dominate
       active_users = get_active_user_count(queue_session)
+      user_multiplier = 1.0
       if active_users > 1
         # 3% increase per user above 1, capped at 2x
         user_multiplier = 1 + (active_users - 1) * 0.03
-        multiplier *= [user_multiplier, 2.0].min
+        user_multiplier = [user_multiplier, 2.0].min
+        multiplier *= user_multiplier
       end
       
       # Factor 2: Queue velocity (priority 2)
       # Minimal surge pricing
       velocity = get_queue_velocity(queue_session)
+      velocity_multiplier = 1.0
       if velocity > 0
         # 5% increase per song/minute, capped at 1.5x
         velocity_multiplier = 1 + velocity * 0.05
-        multiplier *= [velocity_multiplier, 1.5].min
+        velocity_multiplier = [velocity_multiplier, 1.5].min
+        multiplier *= velocity_multiplier
       end
       
       # Factor 3: Position in queue (priority 3)
-      # Very gentle position curve - position 1 is at most 2x position 10
+      # Position matters - earlier positions cost more
+      position_factor = 1.0
       if desired_position > 0
-        # Linear decrease: pos 1 = 1.5x, pos 5 = 1.1x, pos 10 = 1.05x
-        position_bonus = 0.5 / desired_position
+        # Increased bonus: pos 1 = 3x, pos 2 = 2x, pos 5 = 1.4x, pos 10 = 1.2x
+        position_bonus = 2.0 / desired_position
         position_factor = 1.0 + position_bonus
         multiplier *= position_factor
       end
+      
+      # Log the breakdown
+      Rails.logger.info "  User multiplier: #{user_multiplier.round(4)} (#{active_users} active users)"
+      Rails.logger.info "  Velocity multiplier: #{velocity_multiplier.round(4)} (#{velocity.round(2)} songs/min)"
+      Rails.logger.info "  Position multiplier: #{position_factor.round(4)} (position #{desired_position})"
       
       multiplier
     end
@@ -151,10 +188,9 @@ class DynamicPricingService
       if desired_position
         factors[:desired_position] = desired_position
         if desired_position > 0
-          position_factor = 1.0 / (desired_position ** 0.5)
-          if queue_length > 0
-            position_factor *= (1 + Math.log(queue_length + 1) * 0.2)
-          end
+          # Use the SAME formula as calculate_base_multiplier
+          position_bonus = 2.0 / desired_position
+          position_factor = 1.0 + position_bonus
           factors[:position_factor] = position_factor
         else
           factors[:position_factor] = 1.0

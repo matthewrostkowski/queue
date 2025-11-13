@@ -546,19 +546,19 @@
               <div class="song-info">
                 <div class="song-title"><%= item.title %></div>
                 <div class="song-artist"><%= item.artist %></div>
-              <div class="song-meta">
-                Added by <%= item.user_display_name || 'Guest' %>
-                <% if item.duration_ms %>
-                  • <%= "#{item.duration_ms / 60000}:#{((item.duration_ms % 60000) / 1000).to_s.rjust(2, '0')}" %>
-                <% end %>
-              </div>
+                <div class="song-meta">
+                  Added by <%= item.user_display_name || 'Guest' %>
+                  <% if item.duration_ms %>
+                    • <%= "#{item.duration_ms / 60000}:#{((item.duration_ms % 60000) / 1000).to_s.rjust(2, '0')}" %>
+                  <% end %>
+                </div>
 
               <div class="song-pricing">
                 <button class="jump-ahead-btn" data-position="1" data-price="<%= item.jump_ahead_price_cents %>">
                   <span class="price-label">Jump ahead:</span>
                   <span class="price-value"><%= item.jump_ahead_price_display %></span>
                 </button>
-              </div>
+                </div>
               </div>
 
               <div class="song-actions">
@@ -823,7 +823,7 @@
           // Update score
           scoreEl.textContent = data.vote_score;
           card.dataset.voteScore = data.vote_score;
-
+          
           // Note: Queue ordering is now controlled by server (paid positions)
           // No client-side reordering needed
           
@@ -941,6 +941,12 @@
 
                <!-- Bottom Action Bar -->
                <div style="padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); background: #151515;">
+                 <!-- Debug Info -->
+                 <div id="pricing-debug" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; font-size: 0.75rem; color: #888; font-family: monospace;">
+                   <div style="margin-bottom: 0.5rem; color: #1db954; font-weight: 600;">Pricing Breakdown:</div>
+                   <div id="debug-content"></div>
+                 </div>
+                 
                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                    <div>
                      <div style="font-size: 0.75rem; color: #888; margin-bottom: 0.25rem;">Position <span id="selected-position-num">-</span></div>
@@ -1436,6 +1442,9 @@
                 }
                 draggedElement.setAttribute('data-price', data.price_cents);
                 onPositionSelect(newPosition, data.price_cents);
+                
+                // Show debug info
+                this.showPricingDebug(data.factors);
               });
           }
         });
@@ -1710,6 +1719,30 @@
         } catch (error) {
           console.error('Search error:', error);
           resultsContainer.innerHTML = '<div style="color: #f87171; padding: 0.75rem; text-align: center; font-size: 0.875rem;">Search failed. Please try again.</div>';
+        }
+      }
+
+      showPricingDebug(factors) {
+        const debugDiv = document.getElementById('pricing-debug');
+        const debugContent = document.getElementById('debug-content');
+        
+        if (factors && debugDiv && debugContent) {
+          debugDiv.style.display = 'block';
+          
+          // Check if position factor looks wrong (should be < 4.0 with new formula)
+          const positionFactor = factors.position_factor || 1.0;
+          const isOldFormula = positionFactor > 4.0;
+          
+          debugContent.innerHTML = `
+            ${isOldFormula ? '<div style="color: #ef4444; font-weight: 600; margin-bottom: 0.5rem;">⚠️ OLD PRICING CODE RUNNING - RESTART RAILS SERVER!</div>' : ''}
+            <div>Active Users: ${factors.active_users || 0}</div>
+            <div>Queue Velocity: ${factors.queue_velocity || 0} songs/min</div>
+            <div>Queue Length: ${factors.queue_length || 0}</div>
+            <div>Base Price: $${((factors.base_price_cents || 100) / 100).toFixed(2)}</div>
+            <div>Venue Multiplier: ${factors.venue_multiplier || 1.0}x</div>
+            <div>Time Factor: ${factors.time_factor || 1.0}x</div>
+            <div style="${isOldFormula ? 'color: #ef4444; font-weight: 600;' : ''}">Position Factor: ${positionFactor.toFixed(4)}x ${isOldFormula ? '(SHOULD BE ~3x)' : ''}</div>
+          `;
         }
       }
 
