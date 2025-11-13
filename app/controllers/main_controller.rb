@@ -1,3 +1,9 @@
+# app/controllers/main_controller.rb
 class MainController < ApplicationController
-  def index; end
+  before_action :authenticate_user!
+
+  def index
+    @user = current_user
+    @queue_session = current_queue_session
+  end
 end

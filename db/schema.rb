@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_08_084907) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_12_142532) do
   create_table "queue_items", force: :cascade do |t|
     t.integer "song_id"
     t.integer "queue_session_id", null: false
@@ -47,8 +47,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_08_084907) do
     t.integer "currently_playing_id"
     t.boolean "is_playing", default: false
     t.datetime "playback_started_at"
+    t.string "join_code", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "code_expires_at"
     t.index ["currently_playing_id"], name: "index_queue_sessions_on_currently_playing_id"
+    t.index ["join_code"], name: "index_queue_sessions_on_join_code"
     t.index ["venue_id", "is_active"], name: "index_queue_sessions_on_venue_id_and_is_active"
+    t.index ["venue_id", "status"], name: "index_queue_sessions_on_venue_id_and_status"
   end
 
   create_table "songs", force: :cascade do |t|
@@ -78,10 +83,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_08_084907) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "capacity"
+    t.bigint "host_user_id"
+    t.index ["host_user_id"], name: "index_venues_on_host_user_id"
   end
 
   add_foreign_key "queue_items", "queue_sessions"
   add_foreign_key "queue_items", "songs"
   add_foreign_key "queue_items", "users"
   add_foreign_key "queue_sessions", "venues"
+  add_foreign_key "venues", "users", column: "host_user_id"
 end

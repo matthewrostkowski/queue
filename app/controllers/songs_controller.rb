@@ -1,6 +1,9 @@
+# app/controllers/songs_controller.rb
 class SongsController < ApplicationController
   require 'net/http'
   require 'json'
+
+  before_action :authenticate_user!
 
   def search
     @query = params[:q]
@@ -82,3 +85,4 @@ class SongsController < ApplicationController
     []
   end
 end
+

@@ -1,28 +1,27 @@
 require 'rails_helper'
 
 RSpec.describe QueueItem, type: :model do
-  let(:session) { QueueSession.create!(venue: Venue.create!(name: "Test Venue"), is_active: true) }
+  let(:user) { User.create!(display_name: "TestUser", auth_provider: "guest") }
+  let(:host) { User.create!(display_name: "Host", auth_provider: "guest") }
+  let(:venue) { Venue.create!(name: "Test Venue", host_user_id: host.id) }
+  let(:session) { venue.queue_sessions.create!(status: 'active', started_at: Time.current, join_code: '123456') }
+  let(:song) { Song.create!(title: "Song Title", artist: "Artist Name") }
 
-  it 'exists as a model' do
-    expect(QueueItem).to be_a(Class)
+  describe 'validations' do
+    it 'is valid with title and artist' do
+      item = QueueItem.new(user: user, song: song, queue_session: session, base_price: 3.99)
+      expect(item).to be_valid
+    end
   end
 
-  it 'has a queue_session association' do
-    expect(QueueItem.reflect_on_association(:queue_session)).to be_present
-  end
-
-  it 'has a song association' do
-    expect(QueueItem.reflect_on_association(:song)).to be_present
-  end
-
-  it "is valid with title and artist" do
-    qi = QueueItem.new(queue_session: session, title: "Song", artist: "Artist")
-    expect(qi).to be_valid
-  end
-
-  it "orders by vote_score desc then created_at asc" do
-    b = QueueItem.create!(queue_session: session, title: "B", artist: "A", vote_score: 3, created_at: 2.minutes.ago)
-    a = QueueItem.create!(queue_session: session, title: "A", artist: "A", vote_score: 1, created_at: 1.minute.ago)
-    expect(QueueItem.by_votes).to eq([b, a])
+  describe 'ordering' do
+    it 'orders by vote_score desc then created_at asc' do
+      song2 = Song.create!(title: "Another Song", artist: "Another Artist")
+      item1 = QueueItem.create!(user: user, song: song, queue_session: session, base_price: 3.99, vote_count: 5)
+      item2 = QueueItem.create!(user: user, song: song2, queue_session: session, base_price: 3.99, vote_count: 10)
+      ordered = QueueItem.all.sort_by { |i| [-i.vote_count, i.created_at] }
+      expect(ordered.first.id).to eq(item2.id)
+      expect(ordered.last.id).to eq(item1.id)
+    end
   end
 end

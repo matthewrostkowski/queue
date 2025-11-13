@@ -1,3 +1,4 @@
+# app/models/queue_item.rb
 class QueueItem < ApplicationRecord
   belongs_to :queue_session
   belongs_to :song, optional: true
@@ -17,7 +18,7 @@ class QueueItem < ApplicationRecord
   
   # Scopes - order by vote_count first, then vote_score as tiebreaker
   scope :unplayed, -> { where(status: 'pending') }
-  scope :played, -> { where(status: 'played') }
+  scope :played,   -> { where(status: 'played') }
   scope :by_votes, -> { order(vote_count: :desc, base_priority: :asc, created_at: :asc) }
   
   # Override attribute readers to check both song and direct attributes
@@ -47,26 +48,36 @@ class QueueItem < ApplicationRecord
   
   # Helper method to work with dollars
   def base_price
-    return 0 if base_price_cents.nil?
+    return 0.0 if base_price_cents.nil?
     base_price_cents / 100.0
   end
   
   def base_price=(dollars)
     self.base_price_cents = (dollars.to_f * 100).to_i
   end
+
+  # Used by profile view: simple wrapper around base_price with logging
+  def price_for_display
+    dollars = base_price
+    Rails.logger.info "[QUEUE_ITEM] price_for_display queue_item_id=#{id.inspect} base_price_cents=#{base_price_cents.inspect} dollars=#{dollars.inspect}"
+    dollars
+  end
   
   private
   
   def set_defaults
+    Rails.logger.info "[QUEUE_ITEM] set_defaults BEFORE queue_item_id=#{id.inspect} base_price_cents=#{base_price_cents.inspect} vote_count=#{vote_count.inspect} vote_score=#{vote_score.inspect} base_priority=#{base_priority.inspect} status=#{status.inspect}"
     self.base_price_cents ||= 0
-    self.vote_count ||= 0
-    self.vote_score ||= 0
-    self.base_priority ||= 0
-    self.status ||= 'pending'
+    self.vote_count       ||= 0
+    self.vote_score       ||= 0
+    self.base_priority    ||= 0
+    self.status           ||= 'pending'
+    Rails.logger.info "[QUEUE_ITEM] set_defaults AFTER queue_item_id=#{id.inspect} base_price_cents=#{base_price_cents.inspect} vote_count=#{vote_count.inspect} vote_score=#{vote_score.inspect} base_priority=#{base_priority.inspect} status=#{status.inspect}"
   end
   
   def must_have_song_or_title_artist
     if song_id.blank? && (read_attribute(:title).blank? || read_attribute(:artist).blank?)
+      Rails.logger.warn "[QUEUE_ITEM] must_have_song_or_title_artist FAILED queue_item_id=#{id.inspect} song_id=nil title=#{read_attribute(:title).inspect} artist=#{read_attribute(:artist).inspect}"
       errors.add(:base, "Must have either a song or title/artist")
     end
   end
