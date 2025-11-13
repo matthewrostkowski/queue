@@ -27,12 +27,18 @@ group :development, :test do
   gem 'shoulda-matchers', '~> 5.0'
   gem "simplecov", "~> 0.22", require: false
   gem "guard-rspec", "~> 4.7"
+  gem "rails-controller-testing"
 
   # Request helpers
   gem "rack-test", "~> 2.1"
 
   # Dev/Test DB
   gem "sqlite3", "~> 2.1"
+
+  # Authentication
+  gem "omniauth", "~> 2.1"
+  gem "omniauth-rails_csrf_protection"
+  gem "omniauth-google-oauth2", "~> 1.1"
 end
 
 # --- Test only ---
@@ -48,3 +54,6 @@ end
 
 gem "bootsnap", require: false
 gem "bcrypt", "~> 3.1"
+
+# TODO: Move from CDN to tailwindcss-rails build once asset pipeline is set up
+# gem "tailwindcss-rails", "~> 4.4"

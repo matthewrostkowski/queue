@@ -1,0 +1,130 @@
+<div class="admin-users-page">
+  <h1 class="page-title">Manage Users</h1>
+
+  <div class="admin-users-table">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Auth Provider</th>
+          <th>Name</th>
+          <th>Role</th>
+          <th>Email</th>
+          <th>Created At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @users.each do |u| %>
+          <tr class="<%= 'self-user' if u == current_user %>">
+            <td><%= u.id %></td>
+            <td><%= u.auth_provider.titleize %></td>
+            <td><%= u.display_name %></td>
+            <td>
+              <span class="role-badge <%= u.role %>"><%= u.role.capitalize %></span>
+            </td>
+            <td><%= u.email %></td>
+            <td><%= l(u.created_at, format: :short) %></td>
+            <td class="actions">
+              <% if u == current_user %>
+                <span class="muted">(no self-actions)</span>
+              <% else %>
+                <%= button_to "Host", promote_to_host_admin_user_path(u), method: :patch, class: "btn btn-sm btn-outline-primary" %>
+                <%= button_to "Admin", promote_to_admin_admin_user_path(u), method: :patch, class: "btn btn-sm btn-outline-success" %>
+                <%= button_to "Demote", demote_admin_user_path(u), method: :patch, class: "btn btn-sm btn-outline-danger" %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  /* Scope all styles under .admin-users-page so they don't affect global layout */
+  .admin-users-page {
+    padding: 1rem 2rem;
+  }
+
+  .admin-users-page .page-title {
+    color: #1db954;
+    margin-bottom: 1rem;
+    font-weight: 700;
+    font-size: 26px;
+  }
+
+  .admin-users-page .admin-users-table table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #181818;
+    border-radius: 12px;
+    overflow: hidden;
+    color: #f2f2f2;
+  }
+
+  .admin-users-page th,
+  .admin-users-page td {
+    padding: 12px 16px;
+    text-align: left;
+  }
+
+  .admin-users-page thead {
+    background: #202020;
+    color: #1db954;
+    text-transform: uppercase;
+    font-size: 13px;
+    letter-spacing: 0.6px;
+  }
+
+  .admin-users-page tbody tr {
+    border-top: 1px solid #2b2b2b;
+    transition: background 0.2s ease;
+  }
+
+  .admin-users-page tbody tr:hover {
+    background: #262626;
+  }
+
+  .admin-users-page .self-user {
+    background: rgba(29, 185, 84, 0.15);
+  }
+
+  .admin-users-page .role-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .admin-users-page .role-badge.user  { background: #333; color: #eee; }
+  .admin-users-page .role-badge.host  { background: rgba(255, 165, 0, 0.25); color: #ffb347; }
+  .admin-users-page .role-badge.admin { background: rgba(29, 185, 84, 0.25); color: #1ed760; }
+
+  .admin-users-page .actions .btn {
+    text-decoration: none;
+    font-size: 13px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-right: 6px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+  }
+
+  .admin-users-page .btn-outline-primary { color: #1db954; border-color: #1db954; }
+  .admin-users-page .btn-outline-primary:hover { background: #1db954; color: #000; }
+
+  .admin-users-page .btn-outline-success { color: #0af; border-color: #0af; }
+  .admin-users-page .btn-outline-success:hover { background: #0af; color: #000; }
+
+  .admin-users-page .btn-outline-danger { color: #ff5555; border-color: #ff5555; }
+  .admin-users-page .btn-outline-danger:hover { background: #ff5555; color: #000; }
+
+  .admin-users-page .muted {
+    color: #aaa;
+    font-style: italic;
+    font-size: 13px;
+  }
+</style>

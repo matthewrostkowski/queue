@@ -1,0 +1,59 @@
+<div class="max-w-6xl mx-auto">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold">Manage Venues</h1>
+    <%= link_to "Add New Venue", new_admin_venue_path, class: "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium bg-[color:var(--primary)] text-white hover:opacity-90 transition-all" %>
+  </div>
+
+  <div class="rounded-2xl border border-white/10 bg-[color:var(--bg-elev)] shadow-lg overflow-hidden">
+    <table class="w-full">
+      <thead class="border-b border-white/10">
+        <tr>
+          <th class="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Venue Name</th>
+          <th class="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Location</th>
+          <th class="text-center px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Pricing</th>
+          <th class="text-center px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Base Price</th>
+          <th class="text-center px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Active Sessions</th>
+          <th class="text-right px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/5">
+        <% @venues.each do |venue| %>
+          <tr class="hover:bg-white/5 transition-colors">
+            <td class="px-6 py-4">
+              <div class="font-semibold"><%= venue.name %></div>
+              <div class="text-sm text-[color:var(--muted)]">ID: <%= venue.id %></div>
+            </td>
+            <td class="px-6 py-4 text-sm">
+              <%= venue.location || "Not specified" %>
+            </td>
+            <td class="px-6 py-4 text-center">
+              <% if venue.pricing_enabled %>
+                <span class="inline-flex px-2 py-0.5 text-xs font-medium bg-green-500/20 text-green-400 rounded-full">Enabled</span>
+              <% else %>
+                <span class="inline-flex px-2 py-0.5 text-xs font-medium bg-gray-500/20 text-gray-400 rounded-full">Disabled</span>
+              <% end %>
+            </td>
+            <td class="px-6 py-4 text-center text-sm">
+              $<%= '%.2f' % (venue.base_price_cents / 100.0) %>
+            </td>
+            <td class="px-6 py-4 text-center text-sm">
+              <%= venue.queue_sessions.active.count %>
+            </td>
+            <td class="px-6 py-4 text-right">
+              <div class="flex justify-end gap-2">
+                <%= link_to "View", admin_venue_path(venue), class: "text-sm text-[color:var(--primary)] hover:underline" %>
+                <%= link_to "Edit", edit_admin_venue_path(venue), class: "text-sm text-[color:var(--primary)] hover:underline" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    
+    <% if @venues.empty? %>
+      <div class="text-center py-12 px-6">
+        <p class="text-[color:var(--muted)]">No venues found. Create your first venue to get started.</p>
+      </div>
+    <% end %>
+  </div>
+</div>

@@ -38,6 +38,10 @@ class QueueSession < ApplicationRecord
     validates :status, inclusion: { in: VALID_STATUSES }
   end
 
+  if column_names.include?("access_code")
+    validates :access_code, uniqueness: true, allow_nil: true
+  end
+
   before_create :assign_join_code
   before_create :set_default_started_at
 
@@ -76,6 +80,7 @@ class QueueSession < ApplicationRecord
   # Playback helpers
   # ---------------------
 
+  # Get the queue in priority order
   def ordered_queue
     scope = queue_items
       .where(played_at: nil)

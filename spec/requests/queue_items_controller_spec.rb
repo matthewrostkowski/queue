@@ -11,7 +11,7 @@ RSpec.describe "QueueItemsController", type: :request do
   before { login_as(user) }
 
   describe "GET /queue_items?queue_session_id=..." do
-    it "returns pending items ordered by vote_count, base_priority, created_at" do
+    it "returns pending items ordered by base_priority, created_at" do
       qi1 = QueueItem.create!(song: song1, queue_session: qs, user: user, base_price: 1.0, vote_count: 1, base_priority: 0, status: "pending")
       sleep 0.01
       qi2 = QueueItem.create!(song: song2, queue_session: qs, user: user, base_price: 1.0, vote_count: 2, base_priority: 0, status: "pending")
@@ -20,7 +20,7 @@ RSpec.describe "QueueItemsController", type: :request do
 
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
-      expect(body.map { |h| h["id"] }).to eq([qi2.id, qi1.id]) # 2 票在前
+      expect(body.map { |h| h["id"] }).to eq([qi1.id, qi2.id]) # Ordered by base_priority then created_at
       expect(body.first).to include("price_for_display")
       expect(body.first["song"]).to include("title", "artist")
     end

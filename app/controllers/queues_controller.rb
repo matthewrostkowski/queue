@@ -3,17 +3,28 @@ class QueuesController < ApplicationController
 
   # GET /queue
   def show
-    # Get all unplayed items, sorted by vote score (desc) then creation time (asc)
+    # Get all unplayed items, sorted purely by base_priority (asc)
+    # Paid positions are absolute - upvotes don't change visual ordering
     # IMPORTANT: .includes(:song) loads the associated songs to avoid N+1 queries
     @queue_items = @queue_session.queue_items
                                   .includes(:song)
                                   .where(played_at: nil)
-                                  .order(vote_score: :desc, created_at: :asc)
+                                  .order(:base_priority, :created_at)
+
+    # Calculate jump-ahead pricing for each position
+    # This shows the cost to insert a NEW song at this position (jumping ahead of this song)
+    @queue_items.each_with_index do |item, index|
+      position = index + 1  # Current position in queue (1-based)
+      item.instance_variable_set(:@jump_ahead_price,
+        DynamicPricingService.calculate_position_price(@queue_session, position))
+    end
 
     # Get currently playing track
     @now_playing = @queue_session.queue_items
                                   .includes(:song)
                                   .find_by(is_currently_playing: true)
+                          
+    @access_code = @queue_session.access_code
 
     respond_to do |format|
       format.html { render :show }
@@ -29,11 +40,19 @@ class QueuesController < ApplicationController
   # GET /queue/state
   # Returns current queue state for polling
   def state
-    # Get all unplayed items in vote order
+    # Get all unplayed items in display order (paid positions only, no vote reordering)
     queue_items = @queue_session.queue_items
                                 .includes(:song)
                                 .where(played_at: nil)
-                                .order(vote_score: :desc, created_at: :asc)
+                                .order(:base_priority, :created_at)
+
+    # Calculate jump-ahead pricing for each position
+    # This shows the cost to insert a NEW song at this position (jumping ahead of this song)
+    queue_items.each_with_index do |item, index|
+      position = index + 1  # Current position in queue (1-based)
+      item.instance_variable_set(:@jump_ahead_price,
+        DynamicPricingService.calculate_position_price(@queue_session, position))
+    end
 
     # Get currently playing track
     currently_playing = @queue_session.queue_items
@@ -155,13 +174,13 @@ class QueuesController < ApplicationController
     session
   end
 
-  # Get the next unplayed track according to vote score ordering
-  # This ensures tracks play in order of upvotes (highest first)
+  # Get the next unplayed track according to priority ordering
+  # This ensures paid positions play first, then vote score as tiebreaker
   def get_next_queue_item
     @queue_session.queue_items
                   .includes(:song)
                   .where(played_at: nil, is_currently_playing: false)
-                  .order(vote_score: :desc, created_at: :asc)
+                  .order(:base_priority, vote_score: :desc, created_at: :asc)
                   .first
   end
 
@@ -210,7 +229,9 @@ class QueuesController < ApplicationController
       cover_url: song.album_cover_url,
       vote_score: queue_item.vote_score,
       created_at: queue_item.created_at,
-      is_currently_playing: queue_item.is_currently_playing
+      is_currently_playing: queue_item.is_currently_playing,
+      jump_ahead_price_cents: queue_item.jump_ahead_price_cents,
+      jump_ahead_price_display: queue_item.jump_ahead_price_display
     }
   end
 end

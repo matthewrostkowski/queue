@@ -3,8 +3,7 @@ class User < ApplicationRecord
   # =====================
   # Roles
   # =====================
-  # NOTE: DB in your branch doesn't have a role column, so we declare
-  # an attribute type here so enum works without a migration.
+  # Ensure enum works even if role column isn't present yet in some schemas
   attribute :role, :integer, default: 0
   enum :role, { user: 0, host: 1, admin: 2 }
 
@@ -13,10 +12,15 @@ class User < ApplicationRecord
   # =====================
   has_many :queue_items, dependent: :nullify
   has_many :queued_songs, through: :queue_items, source: :song
+
+  # Host-side association (your host branch)
   has_many :hosted_venues,
            class_name:  "Venue",
            foreign_key: "host_user_id",
            dependent:   :destroy
+
+  # From dev: wallet / accounting system
+  has_many :balance_transactions, dependent: :destroy
 
   # =====================
   # Authentication
@@ -28,7 +32,7 @@ class User < ApplicationRecord
   # =====================
   validates :display_name,  presence: true
   validates :auth_provider, presence: true
-
+  
   validates :email,
             format:     { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true },
             uniqueness: { case_sensitive: false, allow_blank: true }
@@ -43,6 +47,7 @@ class User < ApplicationRecord
   validates :email, presence: true,
             if: -> { auth_provider == "general_user" }
 
+  # Use dev's stricter length + "changed password" behavior
   validates :password, presence: true, length: { minimum: 8 },
             if: -> { auth_provider == "general_user" && (new_record? || password.present?) }
 
@@ -52,12 +57,74 @@ class User < ApplicationRecord
   before_validation :normalize_and_canonicalize_email
 
   # =====================
+  # Balance Management
+  # =====================
+  def balance
+    balance_cents.to_i / 100.0
+  end
+  
+  def balance_display
+    "$#{'%.2f' % balance}"
+  end
+  
+  def has_sufficient_balance?(amount_cents)
+    balance_cents.to_i >= amount_cents.to_i
+  end
+  
+  # Deduct amount from balance (for queue payments)
+  def debit_balance!(amount_cents, description: nil, queue_item: nil)
+    raise "Insufficient balance" unless has_sufficient_balance?(amount_cents)
+    
+    transaction do
+      new_balance = balance_cents.to_i - amount_cents.to_i
+      update!(balance_cents: new_balance)
+      
+      balance_transactions.create!(
+        amount_cents:        -amount_cents,
+        transaction_type:    "debit",
+        description:         description || "Queue payment",
+        queue_item:          queue_item,
+        balance_after_cents: new_balance
+      )
+    end
+  end
+  
+  # Add amount to balance (for refunds or credits)
+  def credit_balance!(amount_cents, description: nil, queue_item: nil)
+    transaction do
+      new_balance = balance_cents.to_i + amount_cents.to_i
+      update!(balance_cents: new_balance)
+      
+      balance_transactions.create!(
+        amount_cents:        amount_cents,
+        transaction_type:    "refund",
+        description:         description || "Queue refund",
+        queue_item:          queue_item,
+        balance_after_cents: new_balance
+      )
+    end
+  end
+  
+  # Initialize balance for new users
+  def initialize_balance!
+    return if balance_transactions.exists?
+    
+    transaction do
+      balance_transactions.create!(
+        amount_cents:        10_000,
+        transaction_type:    "initial",
+        description:         "Welcome bonus",
+        balance_after_cents: balance_cents
+      )
+    end
+  end
+
+  # =====================
   # Class Methods
   # =====================
   def self.find_or_create_guest(name = nil)
     display_name = name || "Guest_#{SecureRandom.hex(4)}"
-    Rails.logger.info "[USER] find_or_create_guest called " \
-                      "name_param=#{name.inspect} generated_display_name=#{display_name.inspect}"
+    Rails.logger.info "[USER] find_or_create_guest called name_param=#{name.inspect} generated_display_name=#{display_name.inspect}"
 
     user = create(display_name: display_name, auth_provider: "guest", role: :user)
 
@@ -95,11 +162,10 @@ class User < ApplicationRecord
     hosted
   end
 
-  # Slightly richer helper used by ApplicationController
+  # Richer helper used by ApplicationController
   def host_account?
     result = host? || admin? || hosted_venues.exists?
-    Rails.logger.debug "[USER] host_account? user_id=#{id.inspect} role=#{role.inspect} " \
-                       "hosted_venues_count=#{hosted_venues.size} result=#{result}"
+    Rails.logger.debug "[USER] host_account? user_id=#{id.inspect} role=#{role.inspect} hosted_venues_count=#{hosted_venues.size} result=#{result}"
     result
   end
 
@@ -109,8 +175,7 @@ class User < ApplicationRecord
   private
 
   def normalize_and_canonicalize_email
-    Rails.logger.debug "[USER] normalize_and_canonicalize_email START " \
-                       "user_id=#{id || 'NEW'} raw_email=#{self.email.inspect}"
+    Rails.logger.debug "[USER] normalize_and_canonicalize_email START user_id=#{id || 'NEW'} raw_email=#{self.email.inspect}"
 
     # Normalize email -> strip + downcase
     if email.present?
@@ -127,22 +192,18 @@ class User < ApplicationRecord
         begin
           canon = canonicalize_email(email)
           self[:canonical_email] = canon
-          Rails.logger.debug "[USER] canonical_email SET " \
-                             "user_id=#{id || 'NEW'} canonical_email=#{canon.inspect}"
+          Rails.logger.debug "[USER] canonical_email SET user_id=#{id || 'NEW'} canonical_email=#{canon.inspect}"
         rescue => e
-          Rails.logger.error "[USER] ERROR setting canonical_email " \
-                             "user_id=#{id || 'NEW'} error=#{e.class}: #{e.message}"
+          Rails.logger.error "[USER] ERROR setting canonical_email user_id=#{id || 'NEW'} error=#{e.class}: #{e.message}"
         end
       else
-        Rails.logger.debug "[USER] canonical_email column MISSING in schema; " \
-                           "skipping canonicalization for email=#{email.inspect}"
+        Rails.logger.debug "[USER] canonical_email column MISSING in schema; skipping canonicalization for email=#{email.inspect}"
       end
     else
       Rails.logger.debug "[USER] normalize_and_canonicalize_email: email is blank, skipping canonicalization"
     end
 
-    Rails.logger.debug "[USER] normalize_and_canonicalize_email END " \
-                       "user_id=#{id || 'NEW'} normalized_email=#{email.inspect}"
+    Rails.logger.debug "[USER] normalize_and_canonicalize_email END user_id=#{id || 'NEW'} normalized_email=#{email.inspect}"
   end
 
   def canonicalize_email(raw)
@@ -157,8 +218,8 @@ class User < ApplicationRecord
     end
 
     # Gmail-style canonicalization: ignore tags & dots in local part
-    local = local.split("+", 2)[0]
-    local = local.delete(".")
+    local  = local.split("+", 2)[0]
+    local  = local.delete(".")
     result = "#{local}@#{domain}"
 
     Rails.logger.debug "[USER] canonicalize_email result=#{result.inspect}"

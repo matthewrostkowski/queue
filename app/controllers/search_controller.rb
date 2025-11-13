@@ -1,5 +1,6 @@
 # app/controllers/search_controller.rb
 class SearchController < ApplicationController
+  before_action :authenticate_user!
   def index
     @songs = []
     if params[:q].present?

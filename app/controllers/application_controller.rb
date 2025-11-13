@@ -2,12 +2,17 @@
 class ApplicationController < ActionController::Base
   protect_from_forgery with: :exception
 
+  # ---------------------
   # Logging
+  # ---------------------
   before_action :log_request_info
   after_action  :log_response_info
 
+  # ---------------------
   # Auth / user
+  # ---------------------
   before_action :set_current_user
+  # Allow some controllers/actions to be public (login, signup, etc.)
   before_action :authenticate_user!, unless: :public_controller?
 
   helper_method :current_user, :current_queue_session
@@ -15,7 +20,6 @@ class ApplicationController < ActionController::Base
   # ---------------------
   # Auth
   # ---------------------
-
   def authenticate_user!
     Rails.logger.info "[AUTH] authenticate_user! called. current_user: #{current_user&.id}"
 
@@ -33,6 +37,7 @@ class ApplicationController < ActionController::Base
     authenticate_user!
   end
 
+  # Require host or admin
   def require_host!
     Rails.logger.info "[AUTH] require_host! called. current_user: #{current_user&.id}"
 
@@ -51,6 +56,7 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  # Require admin only
   def require_admin!
     unless current_user&.admin?
       respond_to do |format|
@@ -58,6 +64,21 @@ class ApplicationController < ActionController::Base
         format.json { render json: { error: "forbidden" }, status: :forbidden }
         format.any  { head :forbidden }
       end
+    end
+  end
+
+  # Redirect after sign-in based on role
+  def after_sign_in_path
+    return login_path unless current_user
+
+    case current_user.role
+    when "admin"
+      admin_dashboard_path
+    when "host"
+      # send hosts to their venues index/dashboard
+      host_venues_path
+    else
+      mainpage_path # Regular user
     end
   end
 
@@ -125,7 +146,6 @@ class ApplicationController < ActionController::Base
   # ---------------------
   # Logging
   # ---------------------
-
   def log_request_info
     @request_start_time = Time.now
     Rails.logger.info "[REQUEST] #{request.method} #{request.path} | User: #{current_user&.email || 'ANONYMOUS'} | IP: #{request.remote_ip}"

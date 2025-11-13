@@ -16,7 +16,9 @@ RSpec.describe "QueueItems", type: :request do
       cover_url: "https://example.com/cover.jpg",
       duration_ms: 188000,
       preview_url: "https://example.com/sofia.mp3",
-      user_display_name: "Guest"
+      user_display_name: "Guest",
+      desired_position: 1,
+      paid_amount_cents: 100  # Provide payment amount
     }
     post "/queue_items", params: params
     expect(response).to have_http_status(:found) # redirected to /queue

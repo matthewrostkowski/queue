@@ -65,6 +65,7 @@ end
 
 Given('I have queued the following songs:') do |table|
   user = User.last # Get the user created by login step
+  @queued_songs = table.hashes
   table.hashes.each do |row|
     song = Song.find_or_create_by!(title: row['title'], artist: row['artist'])
     QueueItem.create!(
@@ -113,13 +114,19 @@ Then('I should see {string} upvotes for that song') do |upvotes|
   expect(page).to have_content(upvotes)
 end
 
-Then('I should see all {int} songs listed') do |count|
-  # Count the number of song cards displayed
-  song_cards = page.all('div[style*="padding:12px"]').select do |div|
-    div.text.include?('👍')
+Then("I should see all {int} songs listed") do |count|
+  # The Given step should have saved the table as @queued_songs = table.hashes
+  expect(@queued_songs&.size).to eq(count)
+
+  @queued_songs.each do |row|
+    title  = row.fetch("title")
+    artist = row.fetch("artist")
+    # Match the rendered "Title — Artist" line (or adjust if your separator differs)
+    expect(page).to have_text(title)
+    expect(page).to have_text(artist)
   end
-  expect(song_cards.count).to be >= count
 end
+
 
 Then('I should see a status badge showing {string}') do |status|
   expect(page.text.downcase).to include(status.downcase)
