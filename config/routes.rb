@@ -101,6 +101,7 @@ Rails.application.routes.draw do
         patch :resume_session
         patch :end_session
         patch :regenerate_code
+        patch :regenerate_venue_code
       end
     end
 

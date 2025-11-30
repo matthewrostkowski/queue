@@ -1,0 +1,42 @@
+---
+alwaysApply: true
+---
+requireTests:
+  description: |
+    Every new function or feature added must have corresponding RSpec tests that achieve at least 90% line coverage.
+  policy:
+    onCreate:
+      - fileType: ruby
+        action: require
+        requirement: |
+          You must add or update RSpec tests covering your new code to at least 90% line coverage, as measured by SimpleCov or similar. If your contribution introduces a new function, method, class, or feature, include or update specs accordingly. 
+          Include evidence (such as a current SimpleCov report or covered/uncovered line listing) showing that your new functionality has >=90% coverage. If coverage is not met, explain explicitly why and obtain reviewer approval.
+    onUpdate:
+      - fileType: ruby
+        action: require
+        requirement: |
+          Any changes or additions to functions, methods, or features must maintain minimum 90% RSpec test coverage for those changes, as measured by SimpleCov or equivalent. Add or update specs if necessary, and include current coverage output. If 90% is not achievable, provide clear justification.
+  examples:
+    - description: "Adding a new service method"
+      valid: |
+        # Add service method
+        def my_new_feature
+          # logic
+        end
+
+        # In the appropriate spec file:
+        describe '#my_new_feature' do
+          it 'does something' do
+            # test logic
+          end
+        end
+
+        # SimpleCov result attached: my_new_feature - 100% covered.
+      invalid: |
+        # Add service method
+        def my_new_feature
+          # logic
+        end
+
+        # No spec provided or coverage <90%
+        # SimpleCov: my_new_feature - 0% covered.

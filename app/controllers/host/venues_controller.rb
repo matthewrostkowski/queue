@@ -7,7 +7,8 @@ module Host
       :show, :edit, :update, :destroy, 
       :create_session, :start_session, 
       :pause_session, :resume_session, 
-      :end_session, :regenerate_code, :dashboard
+      :end_session, :regenerate_code, :dashboard,
+      :regenerate_venue_code
     ]
 
     def index
@@ -131,6 +132,16 @@ module Host
         redirect_to host_venue_path(@venue), notice: "Code regenerated"
       else
         redirect_to host_venue_path(@venue), alert: "No active session"
+      end
+    end
+
+    def regenerate_venue_code
+      authorize_host!(@venue)
+      
+      if @venue.regenerate_venue_code
+        redirect_to host_venue_path(@venue), notice: "Venue code regenerated successfully"
+      else
+        redirect_to host_venue_path(@venue), alert: "Failed to regenerate venue code"
       end
     end
 
