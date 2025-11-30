@@ -76,7 +76,7 @@ class ApplicationController < ActionController::Base
       admin_dashboard_path
     when "host"
       # send hosts to their venues index/dashboard
-      host_venues_path
+      mainpage_path
     else
       mainpage_path # Regular user
     end

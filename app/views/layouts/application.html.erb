@@ -98,6 +98,9 @@
               <%= link_to "Queue", queue_path, class: "text-sm font-medium hover:text-[color:var(--primary)] transition-colors" %>
               <%= link_to "Search", search_path, class: "text-sm font-medium hover:text-[color:var(--primary)] transition-colors" %>
               <%= link_to "Profile", profile_path, class: "text-sm font-medium hover:text-[color:var(--primary)] transition-colors" %>
+              <% if current_user&.host? %>
+                <%= link_to "Venue", host_venues_path, class: "text-sm font-medium hover:text-[color:var(--primary)] transition-colors" %>
+              <% end %>
             </nav>
           <% end %>
         </div>
