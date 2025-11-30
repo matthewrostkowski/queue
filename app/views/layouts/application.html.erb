@@ -31,7 +31,7 @@
     :root { --ink:#0a0a0b; --muted:#63666a; --line:#ececef; --bg:#f8fafc; --brand:#111827; }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-    a{color:var(--brand);text-decoration:none}
+    a{color:var(--brand) !important;text-decoration:none}
     a:hover{text-decoration:underline}
     .container{max-width:960px;margin:0 auto;padding:24px}
     .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
@@ -83,7 +83,7 @@
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
         <div class="flex items-center gap-x-8">
-          <div class="text-lg font-bold">Queue</div>
+          <div class="text-lg font-bold" style="color: black">Queue</div>
 
           <% if current_user %>
             <nav class="hidden md:flex items-center gap-x-6">
@@ -113,6 +113,7 @@
             <span id="current-user" class="text-sm text-[color:var(--muted)]"><%= current_user.display_name %></span>
             <%= button_to "Logout", logout_path, method: :delete,
                   class: "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium bg-white/5 border border-white/15 hover:bg-white/10 transition-all",
+                  style: "color: black",
                   form: { class: "inline" } %>
           </div>
         <% else %>
