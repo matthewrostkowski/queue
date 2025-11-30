@@ -1,25 +1,36 @@
-<div class="card">
-  <h1>Create your account</h1>
-
-  <% if flash[:alert].present? %>
-    <p style="color:#b91c1c;"><%= flash[:alert] %></p>
-  <% end %>
-
-  <%= form_with model: @user, url: users_path, method: :post, local: true do |f| %>
-    <div style="display:flex;flex-direction:column;gap:10px;max-width:420px;">
-      <%= f.label :email %>
-      <%= f.email_field :email, required: true, style: "padding:10px;border:1px solid var(--line);border-radius:10px" %>
-
-      <%= f.label :password %>
-      <%= f.password_field :password, required: true, style: "padding:10px;border:1px solid var(--line);border-radius:10px" %>
-
-      <%= f.label :password_confirmation %>
-      <%= f.password_field :password_confirmation, required: true, style: "padding:10px;border:1px solid var(--line);border-radius:10px" %>
-
-      <%= f.label :display_name %> <small>(optional)</small>
-      <%= f.text_field :display_name, style: "padding:10px;border:1px solid var(--line);border-radius:10px" %>
-
-      <%= f.submit "Create account", class: "btn" %>
+<div class="max-w-md mx-auto">
+  <div class="rounded-2xl border border-white/10 bg-[color:var(--bg-elev)] shadow-lg p-8">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold mb-3">Create your account</h1>
+      <p class="text-[color:var(--muted)] text-lg">Join Queue and start shaping the vibe.</p>
     </div>
-  <% end %>
+
+    <% if flash[:alert].present? %>
+      <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-900 text-sm">
+        <%= flash[:alert] %>
+      </div>
+    <% end %>
+
+    <div class="space-y-4">
+      <%= form_with model: @user, url: users_path, method: :post, local: true, class: "space-y-4" do |f| %>
+        <div>
+          <%= f.email_field :email, required: true, placeholder: "Email", class: "w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 focus:border-transparent placeholder:text-[color:var(--muted)]" %>
+        </div>
+        <div>
+          <%= f.password_field :password, required: true, placeholder: "Password", class: "w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 focus:border-transparent placeholder:text-[color:var(--muted)]" %>
+        </div>
+        <div>
+          <%= f.password_field :password_confirmation, required: true, placeholder: "Confirm Password", class: "w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 focus:border-transparent placeholder:text-[color:var(--muted)]" %>
+        </div>
+        <div>
+          <%= f.text_field :display_name, placeholder: "Your name (optional)", class: "w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 focus:border-transparent placeholder:text-[color:var(--muted)]" %>
+        </div>
+
+        <%= f.submit "Create account", class: "w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-medium bg-[color:var(--primary)] text-white hover:opacity-90 transition-all focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 focus:ring-offset-2" %>
+      <% end %>
+      <p class="text-sm text-center text-[color:var(--muted)]">
+        Already have an account? <%= link_to "Sign in", login_path, class: "text-[color:var(--primary)] hover:underline" %>
+      </p>
+    </div>
+  </div>
 </div>

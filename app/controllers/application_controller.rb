@@ -118,19 +118,22 @@ class ApplicationController < ActionController::Base
       # 2) Fallback: global active queue session
       qs = QueueSession.active.first
 
-      # 3) If none exists at all, create a default
-      unless qs
-        Rails.logger.info "[QUEUE] No active queue session. Creating default."
-        venue = Venue.first || Venue.create!(name: "Main Venue")
+      # 3) If none exists at all, create a default, unless it's a guest user
+      if !qs && current_user && !current_user.guest?
+        venue = Venue.first
+        if venue
+          Rails.logger.info "[QUEUE] No active queue session. Creating default for venue #{venue.id}."
+          attrs = { venue: venue }
+          if QueueSession.column_names.include?("is_active")
+            attrs[:is_active] = true
+          elsif QueueSession.column_names.include?("status")
+            attrs[:status] = "active"
+          end
 
-        attrs = { venue: venue }
-        if QueueSession.column_names.include?("is_active")
-          attrs[:is_active] = true
-        elsif QueueSession.column_names.include?("status")
-          attrs[:status] = "active"
+          qs = QueueSession.create!(attrs)
+        else
+          Rails.logger.warn "[QUEUE] No active queue session and no venues exist. Cannot create default session."
         end
-
-        qs = QueueSession.create!(attrs)
       end
 
       qs

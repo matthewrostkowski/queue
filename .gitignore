@@ -68,3 +68,6 @@ config/deploy.yml
 UI_UX.md
 Gemfile.lock
 Gemfile
+
+# YoYo AI version control directory
+.yoyo/

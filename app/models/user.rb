@@ -169,6 +169,10 @@ class User < ApplicationRecord
     result
   end
 
+  def guest?
+    auth_provider == 'guest'
+  end
+
   # =====================
   # Private Helpers
   # =====================

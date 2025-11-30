@@ -199,16 +199,7 @@ class QueueItemsController < ApplicationController
     end
   end
 
-  def current_queue_session
-    QueueSession.where(is_active: true).first || 
-    QueueSession.first || 
-    create_default_session
-  end
 
-  def create_default_session
-    venue = Venue.first || Venue.create!(name: "Default Venue")
-    QueueSession.create!(venue: venue, is_active: true)
-  end
 
   def format_queue_item(qi)
     {

@@ -49,10 +49,17 @@
       </div>
 
       <!-- Guest Login Form -->
-      <form action="<%= login_path %>" method="post" class="guest-login-form">
+      <form action="<%= login_path %>" method="post" class="guest-login-form space-y-4">
         <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-        <input type="hidden" name="continue_as_guest" value="true">
-        
+        <input type="hidden" name="provider" value="guest">
+        <div>
+          <input 
+            type="text"
+            name="display_name"
+            placeholder="Your name (optional)"
+            class="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 focus:border-transparent placeholder:text-[color:var(--muted)]" 
+          />
+        </div>
         <button type="submit" class="btn btn-secondary btn-block" name="guest">
           Continue as guest
         </button>

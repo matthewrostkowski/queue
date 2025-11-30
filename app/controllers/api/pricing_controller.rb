@@ -53,19 +53,6 @@ module Api
       end
     end
     
-  private
 
-  def current_queue_session
-    # Get the active queue session or create a default one (same as queues_controller)
-    session = QueueSession.active.first || QueueSession.first
-
-    unless session
-      # Create a default venue and session if none exist
-      venue = Venue.first || Venue.create!(name: "Default Venue")
-      session = QueueSession.create!(venue: venue, is_active: true)
-    end
-
-    session
-  end
   end
 end

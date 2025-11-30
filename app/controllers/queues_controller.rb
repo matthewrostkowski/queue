@@ -1,5 +1,6 @@
 class QueuesController < ApplicationController
   before_action :set_queue_session, only: [:show, :start_playback, :next_track, :stop_playback, :state]
+  before_action :require_queue_session, only: [:show, :start_playback, :next_track, :stop_playback, :state]
 
   # GET /queue
   def show
@@ -161,17 +162,13 @@ class QueuesController < ApplicationController
     @queue_session = current_queue_session
   end
 
-  def current_queue_session
-    # Get the active queue session or create a default one
-    session = QueueSession.active.first || QueueSession.first
-    
-    unless session
-      # Create a default venue and session if none exist
-      venue = Venue.first || Venue.create!(name: 'Main Venue')
-      session = QueueSession.create!(venue: venue, is_active: true)
+  def require_queue_session
+    if @queue_session.nil?
+      respond_to do |format|
+        format.html { redirect_to mainpage_path, alert: "No active queue session found." }
+        format.json { render json: { error: "No active queue session found." }, status: :not_found }
+      end
     end
-
-    session
   end
 
   # Get the next unplayed track according to priority ordering
