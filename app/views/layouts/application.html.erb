@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="min-h-screen">
+<html lang="en" class="min-h-screen dark">
 <head>
   <title>Queue</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,31 +19,14 @@
         extend: {
           colors: {
             primary: '#1db954',
-            'bg-elev': '#ffffff',
+            'bg-elev': '#1a1a1a',
           }
         }
       }
     }
   </script>
 
-  <!-- Base layout styles from HEAD -->
-  <style>
-    :root { --ink:#0a0a0b; --muted:#63666a; --line:#ececef; --bg:#f8fafc; --brand:#111827; }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-    a{color:var(--brand) !important;text-decoration:none}
-    a:hover{text-decoration:underline}
-    .container{max-width:960px;margin:0 auto;padding:24px}
-    .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-    .btn{display:inline-block;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#111827;color:#fff}
-    .btn.secondary{background:#fff;color:#111827}
-    header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);z-index:10}
-    header .wrap{display:flex;gap:16px;align-items:center;justify-content:space-between;max-width:960px;margin:0 auto;padding:12px 24px}
-    nav a{margin-right:16px;padding-bottom:8px}
-    .flash{margin:16px 0;padding:10px 12px;border-radius:8px}
-    .flash.notice{background:#eef6ff;border:1px solid #b6daff}
-    .flash.alert{background:#fff4e5;border:1px solid #ffd599}
-  </style>
+  
 
   <!-- Tailwind base variables from dev -->
   <style type="text/tailwindcss">
@@ -83,7 +66,7 @@
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
         <div class="flex items-center gap-x-8">
-          <div class="text-lg font-bold" style="color: black">Queue</div>
+          <div class="text-lg font-bold">Queue</div>
 
           <% if current_user %>
             <nav class="hidden md:flex items-center gap-x-6">
@@ -98,7 +81,7 @@
               <%= link_to "Queue", queue_path, class: "text-sm font-medium hover:text-[color:var(--primary)] transition-colors" %>
               <%= link_to "Search", search_path, class: "text-sm font-medium hover:text-[color:var(--primary)] transition-colors" %>
               <%= link_to "Profile", profile_path, class: "text-sm font-medium hover:text-[color:var(--primary)] transition-colors" %>
-              <% if current_user&.host? %>
+              <% if current_user.host? %>
                 <%= link_to "Venue", host_venues_path, class: "text-sm font-medium hover:text-[color:var(--primary)] transition-colors" %>
               <% end %>
             </nav>
@@ -113,7 +96,6 @@
             <span id="current-user" class="text-sm text-[color:var(--muted)]"><%= current_user.display_name %></span>
             <%= button_to "Logout", logout_path, method: :delete,
                   class: "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium bg-white/5 border border-white/15 hover:bg-white/10 transition-all",
-                  style: "color: black",
                   form: { class: "inline" } %>
           </div>
         <% else %>

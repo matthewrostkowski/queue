@@ -1,14 +1,14 @@
-<div class="min-h-screen bg-gradient-to-br flex items-center justify-center p-4">
-  <div class="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full" data-testid="scan-page">
+<div class="min-h-screen flex items-center justify-center p-4">
+  <div class="bg-[color:var(--bg-elev)] rounded-lg shadow-2xl p-8 max-w-md w-full" data-testid="scan-page">
     <!-- Spec expects 'Scan' text on the page -->
     <div class="text-center mb-4">
-      <h1 class="text-xl font-semibold text-gray-800">Scan</h1>
+      <h1 class="text-xl font-semibold text-[color:var(--fg)]">Scan</h1>
     </div>
 
     <div class="text-center mb-8">
       <div class="text-5xl mb-4">🎵</div>
-      <h2 class="text-3xl font-bold text-gray-800">Queue Music</h2>
-      <p class="text-gray-600 mt-2">Enter a venue code to join their music queue and start adding songs!</p>
+      <h2 class="text-3xl font-bold text-[color:var(--fg)]">Queue Music</h2>
+      <p class="text-[color:var(--muted)] mt-2">Enter a venue code to join their music queue and start adding songs!</p>
     </div>
 
     <% if @error.present? %>
@@ -19,36 +19,36 @@
 
     <%= form_with(url: join_path, method: :post, local: true) do |form| %>
       <div class="mb-6">
-        <%= form.label :join_code, "Venue Code", class: "block text-sm font-semibold text-gray-700 mb-2" %>
+        <%= form.label :join_code, "Venue Code", class: "block text-sm font-semibold text-[color:var(--muted)] mb-2" %>
         <%= form.text_field :join_code,
             placeholder: "Enter 6-digit code",
             maxlength: 6,
             inputmode: "numeric",
             autofocus: true,
-            class: "w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-center text-2xl font-mono font-bold tracking-widest focus:outline-none focus:border-green-500",
+            class: "w-full px-4 py-3 border-2 border-[color:var(--border)] rounded-lg text-center text-2xl font-mono font-bold tracking-widest focus:outline-none focus:border-[color:var(--primary)] bg-white/5",
             autocomplete: "off" %>
-        <p class="text-xs text-gray-500 mt-2">Ask the host for the 6-digit code.</p>
+        <p class="text-xs text-[color:var(--muted)] mt-2">Ask the host for the 6-digit code.</p>
       </div>
 
       <%= form.submit "Join Queue", 
-          class: "w-full px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 font-bold text-lg transition" %>
+          class: "w-full px-6 py-3 bg-[color:var(--primary)] text-black rounded-lg hover:opacity-90 font-bold text-lg transition" %>
     <% end %>
 
-    <div class="mt-6 pt-6 border-t border-gray-200 text-center space-y-2">
-      <p class="text-sm text-gray-600">
+    <div class="mt-6 pt-6 border-t border-[color:var(--border)] text-center space-y-2">
+      <p class="text-sm text-[color:var(--muted)]">
         Don't have a code? Visit a participating venue to get one.
       </p>
-      <p class="text-sm text-gray-600">
-        <%= link_to "Back to Search", search_path, class: "text-green-600 hover:text-green-800 font-semibold" %>
+      <p class="text-sm text-[color:var(--muted)]">
+        <%= link_to "Back to Search", search_path, class: "text-[color:var(--primary)] hover:text-[color:var(--primary)]/80 font-semibold" %>
         &nbsp;|&nbsp;
-        <%= link_to "Back to Main", mainpage_path, class: "text-green-600 hover:text-green-800 font-semibold" %>
+        <%= link_to "Back to Main", mainpage_path, class: "text-[color:var(--primary)] hover:text-[color:var(--primary)]/80 font-semibold" %>
       </p>
     </div>
 
     <!-- Help section -->
-    <div class="mt-8 p-4 bg-green-50 rounded-lg">
-      <h3 class="font-semibold text-gray-700 mb-2">How it works:</h3>
-      <ol class="text-sm text-gray-600 space-y-1">
+    <div class="mt-8 p-4 bg-[color:var(--primary)]/10 rounded-lg">
+      <h3 class="font-semibold text-[color:var(--fg)] mb-2">How it works:</h3>
+      <ol class="text-sm text-[color:var(--muted)] space-y-1">
         <li>✅ Enter the venue code</li>
         <li>✅ Search for songs</li>
         <li>✅ Add to the queue</li>

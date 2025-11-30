@@ -1,6 +1,6 @@
 <div class="max-w-6xl mx-auto">
   <!-- Welcome Card -->
-  <div data-testid="mainpage-welcome" class="rounded-2xl border border-white/10 bg-gradient-to-br from-[#f8fafc] to-[#f8fafc] shadow-xl p-8 mb-8">
+  <div data-testid="mainpage-welcome" class="rounded-2xl border border-white/10 bg-[color:var(--bg-elev)] shadow-xl p-8 mb-8">
     <h2 class="text-3xl font-bold mb-3 text-[color:var(--primary)]">Welcome to Queue</h2>
     <p class="text-[color:var(--muted)] text-lg mb-6">Join a live session or create your own community-powered playlist.</p>
 
@@ -21,7 +21,7 @@
 
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
     <% @sessions.each do |s| %>
-      <div class="rounded-2xl border border-white/10 bg-[#f8fafc] hover:bg-[#1a1a1a] shadow-lg hover:shadow-xl p-5 flex flex-col gap-y-4 transition-all hover:-translate-y-1">
+      <div class="rounded-2xl border border-white/10 bg-[color:var(--bg-elev)] hover:bg-[color:var(--bg-elev)]/80 shadow-lg hover:shadow-xl p-5 flex flex-col gap-y-4 transition-all hover:-translate-y-1">
         <!-- Header: Live + Access Code + Count -->
         <div class="flex items-center justify-between px-4 py-3 bg-[color:var(--bg-elev)] rounded-lg">
           <div class="flex items-center gap-x-2 text-sm">
