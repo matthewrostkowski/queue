@@ -164,7 +164,20 @@ class QueuesController < ApplicationController
 
   def set_queue_session
     Rails.logger.info "[QUEUES] set_queue_session called"
+    Rails.logger.info "[QUEUES]   params[:session_id] = #{params[:session_id].inspect}"
     Rails.logger.info "[QUEUES]   session[:current_queue_session_id] = #{session[:current_queue_session_id].inspect}"
+
+    # If a session_id is passed, it means the user is trying to switch queues.
+    # We should honor this and update their main session cookie.
+    if params[:session_id].present?
+      new_session = QueueSession.find_by(id: params[:session_id])
+      if new_session
+        Rails.logger.info "[QUEUES]   Found session via params[:session_id]: #{new_session.id}. Updating session cookie."
+        set_current_queue_session(new_session) # This updates session[:current_queue_session_id]
+      else
+        Rails.logger.warn "[QUEUES]   session_id=#{params[:session_id]} passed in params but not found. Ignoring."
+      end
+    end
     
     # First try to get from session (set when user joins a queue)
     if session[:current_queue_session_id].present?
