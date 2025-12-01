@@ -33,7 +33,7 @@ module Host
     def show
       authorize_host!(@venue)
       @sessions = @venue.queue_sessions.order(created_at: :desc)
-      @active_session = @venue.active_session
+      @active_session = @venue.queue_sessions.where(status: ['active', 'paused']).order(created_at: :desc).first
     end
 
     def edit

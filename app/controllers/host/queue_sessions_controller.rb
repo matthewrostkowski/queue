@@ -21,22 +21,23 @@ class Host::QueueSessionsController < ApplicationController
   end
 
   # PATCH /host/queue_sessions/:id/pause
+  # PATCH /host/queue_sessions/:id/pause
   def pause
     @queue_session.pause!
-    render json: { status: @queue_session.status }
+    redirect_to host_venue_path(@queue_session.venue), notice: "Session paused"
   end
 
-  # PATCH /host/queue_sessions/:id/resume
-  def resume
-    @queue_session.resume!
-    render json: { status: @queue_session.status }
-  end
+# PATCH /host/queue_sessions/:id/resume
+def resume
+  @queue_session.resume!
+  redirect_to host_venue_path(@queue_session.venue), notice: "Session resumed"
+end
 
-  # PATCH /host/queue_sessions/:id/end
-  def end
-    @queue_session.end_session!
-    render json: { status: @queue_session.status }
-  end
+# PATCH /host/queue_sessions/:id/end
+def end
+  @queue_session.end_session!
+  redirect_to host_venue_path(@queue_session.venue), notice: "Session ended"
+end
 
   private
 

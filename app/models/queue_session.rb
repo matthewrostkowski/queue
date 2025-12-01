@@ -211,6 +211,29 @@ class QueueSession < ApplicationRecord
     code
   end
 
+
+
+  def pause!
+    raise "Invalid status transition" unless status == "active"
+    update!(status: "paused")
+    Rails.logger.info "[QUEUE_SESSION] paused session_id=#{id.inspect}"
+  end
+
+  def resume!
+    raise "Invalid status transition" unless status == "paused"
+    update!(status: "active")
+    Rails.logger.info "[QUEUE_SESSION] resumed session_id=#{id.inspect}"
+  end
+
+  def end_session!
+    raise "Invalid status transition" unless %w[active paused].include?(status)
+    transaction do
+      queue_items.update_all(is_currently_playing: false)
+      update!(status: "ended", ended_at: Time.current)
+    end
+    Rails.logger.info "[QUEUE_SESSION] ended session_id=#{id.inspect}"
+  end
+  
   private
 
   def assign_join_code
