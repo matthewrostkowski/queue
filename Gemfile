@@ -13,6 +13,11 @@ gem "tzinfo-data", platforms: [:mingw, :mswin, :x64_mingw]
 # Faster boot
 gem "bootsnap", require: false
 
+# Authentication (needed in all environments)
+gem "omniauth", "~> 2.1"
+gem "omniauth-rails_csrf_protection"
+gem "omniauth-google-oauth2", "~> 1.1"
+
 # --- Development & Test ---
 group :development, :test do
   gem "byebug"
@@ -36,11 +41,6 @@ group :development, :test do
 
   # Dev/Test DB
   gem "sqlite3", "~> 2.1"
-
-  # Authentication
-  gem "omniauth", "~> 2.1"
-  gem "omniauth-rails_csrf_protection"
-  gem "omniauth-google-oauth2", "~> 1.1"
 end
 
 # --- Test only ---
@@ -54,7 +54,6 @@ group :production do
   gem "pg", "~> 1.1"
 end
 
-gem "bootsnap", require: false
 gem "bcrypt", "~> 3.1"
 
 # TODO: Move from CDN to tailwindcss-rails build once asset pipeline is set up
