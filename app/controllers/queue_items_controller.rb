@@ -83,31 +83,47 @@ class QueueItemsController < ApplicationController
       Rails.logger.info "[QUEUE_ITEMS] Song: id=#{song.id} title=#{song.title}"
     end
     
-    Rails.logger.info "[QUEUE_ITEMS] Creating QueueItem with: #{qi_params.inspect}"
-    
-    qi = QueueItem.new(qi_params)
-    
-    if qi.save
-      Rails.logger.info "[QUEUE_ITEMS] ✅ Successfully created QueueItem id=#{qi.id}"
-      Rails.logger.info "[QUEUE_ITEMS]   queue_session_id=#{qi.queue_session_id}"
-      Rails.logger.info "[QUEUE_ITEMS]   title=#{qi.title}"
-      Rails.logger.info "[QUEUE_ITEMS]   preview_url present? #{qi.preview_url.present?}"
-      
-      respond_to do |format|
-        format.html { redirect_to queue_path, notice: "Song added to queue! Balance: #{current_user&.balance_display}" }
-        format.json { render json: format_queue_item(qi).merge(user_balance: current_user&.balance_cents), status: :created }
+    # Begin a transaction to ensure atomicity
+    ActiveRecord::Base.transaction do
+      # Handle payment if required
+      price_cents = params[:paid_amount_cents].to_i
+      if price_cents > 0
+        user = current_user
+        unless user.has_sufficient_balance?(price_cents)
+          raise ActiveRecord::Rollback, "Insufficient balance"
+        end
+
+        # Deduct from balance and create a transaction record
+        user.debit_balance!(price_cents, description: "Queued song: #{params[:title]}")
+        qi_params[:base_price] = price_cents
       end
-    else
-      Rails.logger.error "[QUEUE_ITEMS] ❌ Failed to create QueueItem"
-      Rails.logger.error "[QUEUE_ITEMS] Errors: #{qi.errors.full_messages.inspect}"
+
+      # Create the QueueItem
+      qi = QueueItem.new(qi_params)
       
+      unless qi.save
+        # If save fails, the transaction will be rolled back.
+        raise ActiveRecord::Rollback, "QueueItem save failed"
+      end
+
+      # If everything is successful, send success response
+      Rails.logger.info "[QUEUE_ITEMS] ✅ Successfully created QueueItem id=#{qi.id}"
       respond_to do |format|
-        format.html { redirect_to search_path, alert: qi.errors.full_messages.first }
-        format.json { render json: { errors: qi.errors.full_messages }, status: :unprocessable_entity }
+        format.html { redirect_to queue_path, notice: "Song added! Your new balance: #{user.balance_display}" }
+        format.json { render json: format_queue_item(qi).merge(user_balance: user.balance_cents), status: :created }
       end
     end
+  rescue ActiveRecord::Rollback => e
+    # Handle failures (insufficient balance or save error)
+    Rails.logger.error "[QUEUE_ITEMS] ❌ Transaction rolled back: #{e.message}"
+    error_message = e.message == "Insufficient balance" ? "You don't have enough funds." : "Could not add song to queue."
     
-    Rails.logger.info "[QUEUE_ITEMS] create action END"
+    respond_to do |format|
+      format.html { redirect_to search_path, alert: error_message }
+      format.json { render json: { errors: [error_message] }, status: :unprocessable_entity }
+    end
+    
+    Rails.logger.info "[QUEUE_ITEMS] create action END (with error)"
     Rails.logger.info "=" * 80
   end
 

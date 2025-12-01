@@ -237,10 +237,10 @@
 
   // Dynamic pricing functionality
   function updatePrices() {
-    fetch('/songs/price_preview?position=next')
+    fetch('/songs/price_preview?position=last')
       .then(res => res.json())
       .then(data => {
-        priceData.nextPosition = data;
+        priceData.lastPosition = data;
         document.querySelectorAll('.position-price').forEach(el => {
           el.textContent = (data.price_cents / 100).toFixed(2);
         });
@@ -274,21 +274,7 @@
     btn.addEventListener('click', function(e) {
       e.preventDefault();
       const form = btn.closest('form');
-      const trackId = form.getAttribute('data-track-id');
-      const trackTitle = form.querySelector('input[name="title"]').value;
-      const trackArtist = form.querySelector('input[name="artist"]').value;
-      
-      // Fetch current pricing for next available positions (like the preview)
-      Promise.all([
-        fetch('/songs/price_preview?position=next').then(res => res.json()),
-        fetch('/songs/price_preview?position=next_plus_1').then(res => res.json()),
-        fetch('/songs/price_preview?position=next_plus_2').then(res => res.json())
-      ]).then(([nextPos, nextPlus1, nextPlus2]) => {
-        showPositionModal(form, trackTitle, trackArtist, [nextPos, nextPlus1, nextPlus2]);
-      }).catch(err => {
-        console.error('Failed to fetch position prices:', err);
-        alert('Error loading prices. Please try again.');
-      });
+      form.submit();
     });
   });
   
