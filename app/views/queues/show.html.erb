@@ -246,6 +246,7 @@
     }
 
     .song-pricing {
+      display: none; /* DISABLED: Queue ordering is now purely by votes */
       margin-top: 6px;
     }
 
@@ -657,8 +658,39 @@
         // Filter out songs without preview URLs and warn user
         const songsWithoutPreview = this.playlist.filter(song => !song.previewUrl);
         if (songsWithoutPreview.length > 0) {
-          console.log(`${songsWithoutPreview.length} song(s) don't have preview URLs`);
+          console.log(`[PLAYER] ${songsWithoutPreview.length} song(s) don't have preview URLs`);
         }
+        
+        console.log('[PLAYER] Playlist initialized:', this.playlist.map(s => ({id: s.id, title: s.title})));
+      }
+
+      // Refresh playlist from current DOM order (called after voting reorders)
+      refreshPlaylist() {
+        console.log('[PLAYER] Refreshing playlist from DOM...');
+        const wasPlaying = this.isPlaying;
+        const currentSongId = this.playlist[this.currentIndex]?.id;
+        
+        // Re-read playlist from DOM in current order
+        this.songCards = document.querySelectorAll('.song-card');
+        this.playlist = Array.from(this.songCards).map(card => ({
+          id: card.dataset.queueItemId,
+          title: card.querySelector('.song-title').textContent,
+          artist: card.querySelector('.song-artist').textContent,
+          cover: card.querySelector('.song-cover img')?.src || '',
+          previewUrl: forceHttps(card.dataset.previewUrl || ''),
+          element: card
+        }));
+        
+        // If we were playing, find the new index of the current song
+        if (currentSongId) {
+          const newIndex = this.playlist.findIndex(s => s.id === currentSongId);
+          if (newIndex !== -1) {
+            this.currentIndex = newIndex;
+            console.log('[PLAYER] Current song moved to index:', newIndex);
+          }
+        }
+        
+        console.log('[PLAYER] Playlist refreshed:', this.playlist.map(s => ({id: s.id, title: s.title})));
       }
 
       attachEventListeners() {
@@ -843,6 +875,8 @@
         const card = button.closest('.song-card');
         const scoreEl = card.querySelector('.vote-score');
         
+        console.log('[VOTING] Vote initiated for card:', card.dataset.queueItemId);
+        
         try {
           const response = await fetch(url, {
             method: 'POST',
@@ -853,19 +887,64 @@
           });
           
           const data = await response.json();
+          console.log('[VOTING] Server response:', data);
           
-          // Update score
+          // Update score display
           scoreEl.textContent = data.vote_score;
           card.dataset.voteScore = data.vote_score;
           
-          // Note: Queue ordering is now controlled by server (paid positions)
-          // No client-side reordering needed
+          // DYNAMIC REORDER: Sort queue by vote_score (highest first)
+          this.reorderQueue();
           
         } catch (error) {
-          console.error('Vote failed:', error);
+          console.error('[VOTING] Vote failed:', error);
         }
       }
 
+      // Reorder queue cards by vote_score (descending), then by data-queue-item-id (ascending) for ties
+      reorderQueue() {
+        const queueList = document.getElementById('queueList');
+        if (!queueList) {
+          console.warn('[VOTING] queueList element not found');
+          return;
+        }
+        
+        const cards = Array.from(queueList.querySelectorAll('.song-card'));
+        console.log('[VOTING] Reordering', cards.length, 'cards');
+        
+        // Sort cards: higher vote_score first, older items first for ties
+        cards.sort((a, b) => {
+          const scoreA = parseInt(a.dataset.voteScore) || 0;
+          const scoreB = parseInt(b.dataset.voteScore) || 0;
+          
+          // Higher score comes first
+          if (scoreB !== scoreA) {
+            return scoreB - scoreA;
+          }
+          
+          // For ties, lower ID (older) comes first
+          const idA = parseInt(a.dataset.queueItemId) || 0;
+          const idB = parseInt(b.dataset.queueItemId) || 0;
+          return idA - idB;
+        });
+        
+        // Log the new order
+        console.log('[VOTING] New order:', cards.map(c => ({
+          id: c.dataset.queueItemId,
+          score: c.dataset.voteScore
+        })));
+        
+        // Reorder DOM with animation
+        cards.forEach((card, index) => {
+          card.style.transition = 'transform 0.3s ease';
+          queueList.appendChild(card);
+        });
+        
+        // Refresh the player's playlist to match new DOM order
+        if (window.queuePlayer) {
+          window.queuePlayer.refreshPlaylist();
+        }
+      }
     }
 
     // ========== JUMP AHEAD SYSTEM ==========
@@ -1827,7 +1906,8 @@
 
     // ========== INITIALIZE ==========
     document.addEventListener('DOMContentLoaded', () => {
-      const player = new QueuePlayer();
+      // Store player globally so VotingSystem can refresh playlist after reordering
+      window.queuePlayer = new QueuePlayer();
       const voting = new VotingSystem();
       const jumpAhead = new JumpAheadSystem();
       
