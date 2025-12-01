@@ -40,13 +40,15 @@ class QueueItemsController < ApplicationController
       )
     else
       # Handle search form params (spotify_id, title, artist, etc.)
-      song = Song.find_or_create_by(spotify_id: params[:spotify_id]) do |s|
-        s.title = params[:title]
-        s.artist = params[:artist]
-        s.cover_url = params[:cover_url]
-        s.duration_ms = params[:duration_ms]
-        s.preview_url = params[:preview_url]
-      end
+      song = Song.find_or_initialize_by(spotify_id: params[:spotify_id])
+      song.assign_attributes(
+        title:       params[:title],
+        artist:      params[:artist],
+        cover_url:   params[:cover_url],
+        duration_ms: params[:duration_ms],
+        preview_url: params[:preview_url] 
+      )
+      song.save!
 
       queue_session = current_queue_session
       

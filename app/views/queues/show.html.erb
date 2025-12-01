@@ -710,21 +710,36 @@
         // Update button states
         document.getElementById('prevBtn').disabled = index === 0;
         document.getElementById('nextBtn').disabled = index === this.playlist.length - 1;
+
+        document.getElementById('progressFill').style.width = '0%';
+        document.getElementById('currentTime').textContent = '0:00';
+        document.getElementById('totalTime').textContent = '0:00';
         
         // Play the preview using <source> with explicit type, then load() then play()
         const url = song.previewUrl;
         if (url) {
           try {
             this.audio.pause();
-            this.audioSource.src = url;       // set <source>
-            this.audio.load();                // make browser pick up new source
-            await this.audio.play();          // then play
+            this.audio.currentTime = 0;
+
+            this.audioSource.src = url;
+            this.audio.load();
+
+            const playPromise = this.audio.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+              await playPromise;
+            }
+
             this.isPlaying = true;
             document.getElementById('playPauseBtn').textContent = '⏸';
           } catch (error) {
+            if (this.isBenignAbort(error)) {
+              console.warn('play() aborted by pause/src change, ignore:', error);
+              return;
+            }
+
             console.error('Playback failed:', error);
             alert(`Failed to play "${song.title}". ${error?.message || 'No supported source was found.'}`);
-            // Try next song
             setTimeout(() => this.playNext(), 500);
           }
         } else {
@@ -749,6 +764,10 @@
               document.getElementById('playPauseBtn').textContent = '⏸';
             })
             .catch(error => {
+              if (this.isBenignAbort(error)) {
+                console.warn('play() aborted on toggle, ignore:', error);
+                return;
+              }
               console.error('Play failed:', error);
             });
         }
@@ -765,10 +784,17 @@
       }
 
       handleAudioError(e) {
-        console.error('Audio error:', e);
+        const mediaError = this.audio.error;
+
+        if (mediaError && mediaError.code === 1) {
+          console.warn('Audio aborted (likely due to src change / pause), ignore.', mediaError);
+          return;
+        }
+
+        console.error('Audio error:', mediaError || e);
         const song = this.playlist[this.currentIndex];
         console.error(`Failed to play: ${song?.title} - ${song?.previewUrl}`);
-        // Try next song after error
+
         setTimeout(() => this.playNext(), 500);
       }
 
@@ -788,6 +814,14 @@
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+
+      isBenignAbort(error) {
+        const msg = String(error?.message || '');
+        return (
+          error?.name === 'AbortError' ||
+          msg.includes('The play() request was interrupted by a call to pause()')
+        );
       }
     }
 
