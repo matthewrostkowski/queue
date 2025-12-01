@@ -20,9 +20,17 @@ class QueueItem < ApplicationRecord
   scope :unplayed, -> { where(status: "pending") }
   scope :played,   -> { where(status: "played") }
 
-  # From dev: explicit position + vote_score ordering
-  scope :by_position, -> { order(:base_priority, :created_at) } # For display
-  scope :by_votes,    -> { order(:base_priority, vote_score: :desc, created_at: :asc) } # For playback
+  # UPDATED: Simplified ordering - pure vote_score based
+  # Higher vote_score = higher priority (appears first)
+  # For ties, older items appear first (FIFO)
+  scope :by_position, -> { order(vote_score: :desc, created_at: :asc) }
+  scope :by_votes,    -> { order(vote_score: :desc, created_at: :asc) }
+  
+  # ADDED: Alias for compatibility with queue_session.rb ordered_queue method
+  # Returns vote_score so sorting works correctly
+  def score
+    vote_score.to_i
+  end
   
   # Override attribute readers to check both song and direct attributes
   def title
@@ -79,11 +87,11 @@ class QueueItem < ApplicationRecord
   def current_position_in_queue
     return nil unless queue_session
 
-    # Get position among unplayed items
+    # Get position among unplayed items ordered by vote_score (highest first)
     unplayed_items = queue_session.queue_items
                                   .where(played_at: nil)
                                   .where(status: "pending")
-                                  .order(:base_priority, :created_at)
+                                  .order(vote_score: :desc, created_at: :asc)
                                   .pluck(:id)
 
     position = unplayed_items.index(id)

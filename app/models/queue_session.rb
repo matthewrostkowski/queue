@@ -80,24 +80,40 @@ class QueueSession < ApplicationRecord
   # Playback helpers
   # ---------------------
 
-  # Get the queue in priority order
+  # ============================================================================
+  # Get the queue in priority order - ORDERED BY vote_score (highest first)
+  # ============================================================================
   def ordered_queue
     scope = queue_items
       .where(played_at: nil)
       .includes(:song, :user)
 
-    Rails.logger.info "[QUEUE_SESSION] ordered_queue session_id=#{id.inspect} pending_count=#{scope.size}"
-    scope.sort_by { |qi| -qi.score.to_i }
+    # Use proper database ordering for consistency
+    ordered = scope.order(vote_score: :desc, created_at: :asc).to_a
+    
+    Rails.logger.info "[QUEUE_SESSION] ordered_queue session_id=#{id.inspect} pending_count=#{ordered.size}"
+    
+    # Log each item's position for debugging
+    ordered.each_with_index do |qi, idx|
+      Rails.logger.info "[QUEUE_SESSION] ordered_queue position=#{idx + 1} queue_item_id=#{qi.id} title=#{qi.title.inspect} vote_score=#{qi.vote_score.inspect} created_at=#{qi.created_at.inspect}"
+    end
+    
+    ordered
   end
 
   def next_track
-    track = ordered_queue.first
-    Rails.logger.info "[QUEUE_SESSION] next_track session_id=#{id.inspect} next_queue_item_id=#{track&.id.inspect}"
+    # Get the highest voted unplayed track
+    track = queue_items
+              .where(played_at: nil)
+              .order(vote_score: :desc, created_at: :asc)
+              .first
+              
+    Rails.logger.info "[QUEUE_SESSION] next_track session_id=#{id.inspect} next_queue_item_id=#{track&.id.inspect} title=#{track&.title.inspect} vote_score=#{track&.vote_score.inspect}"
     track
   end
 
   def play_track!(queue_item)
-    Rails.logger.info "[QUEUE_SESSION] play_track! session_id=#{id.inspect} queue_item_id=#{queue_item&.id.inspect}"
+    Rails.logger.info "[QUEUE_SESSION] play_track! session_id=#{id.inspect} queue_item_id=#{queue_item&.id.inspect} title=#{queue_item&.title.inspect}"
     transaction do
       queue_items.update_all(is_currently_playing: false)
 
