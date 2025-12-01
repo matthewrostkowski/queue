@@ -161,6 +161,8 @@ class QueuesController < ApplicationController
   def set_queue_session
     if params[:session_id]
       @queue_session = QueueSession.find_by(id: params[:session_id])
+
+      set_current_queue_session(@queue_session) if @queue_session
     else
       @queue_session = current_queue_session
     end
