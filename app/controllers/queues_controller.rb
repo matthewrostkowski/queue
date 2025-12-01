@@ -25,7 +25,7 @@ class QueuesController < ApplicationController
                                   .includes(:song)
                                   .find_by(is_currently_playing: true)
                           
-    @access_code = @queue_session.access_code
+    @access_code = @queue_session.join_code
 
     respond_to do |format|
       format.html { render :show }
@@ -159,7 +159,11 @@ class QueuesController < ApplicationController
   private
 
   def set_queue_session
-    @queue_session = current_queue_session
+    if params[:session_id]
+      @queue_session = QueueSession.find_by(id: params[:session_id])
+    else
+      @queue_session = current_queue_session
+    end
   end
 
   def require_queue_session
