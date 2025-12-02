@@ -1,0 +1,2972 @@
+
+Host::VenuesController
+  POST #create
+    creates venue with auto-generated venue code
+    creates venue with unique venue code
+  PATCH #regenerate_venue_code
+    when user is the host
+      regenerates venue code successfully
+      handles regeneration failure gracefully
+    when user is not the host
+      redirects with unauthorized message
+    when user is not signed in
+      redirects to login
+
+QueuesController
+  exists as a controller
+  has a show action defined
+  has a state action defined (FAILED - 1)
+
+Dynamic Pricing
+  User sees dynamic prices on search page (FAILED - 2)
+  Admin can configure venue pricing settings (FAILED - 3)
+  Prices increase with demand (FAILED - 4)
+  Position selection shows different prices (FAILED - 5)
+  User gets refund when bumped down (FAILED - 6)
+
+BalanceTransaction
+  associations
+    belongs to user (FAILED - 7)
+    belongs to queue_item (optional) (FAILED - 8)
+    can be created without queue_item (FAILED - 9)
+  validations
+    requires amount_cents (FAILED - 10)
+    requires transaction_type (FAILED - 11)
+    requires balance_after_cents (FAILED - 12)
+    validates transaction_type is in allowed list (FAILED - 13)
+    accepts valid transaction types (FAILED - 14)
+    validates balance_after_cents is not negative (FAILED - 15)
+    allows balance_after_cents to be zero (FAILED - 16)
+  scopes
+    .credits
+      returns credit, refund, and initial transactions (FAILED - 17)
+    .debits
+      returns only debit transactions (FAILED - 18)
+    .recent
+      orders by created_at desc (FAILED - 19)
+  instance methods
+    #credit?
+      returns true for credit transactions (FAILED - 20)
+      returns true for refund transactions (FAILED - 21)
+      returns true for initial transactions (FAILED - 22)
+      returns false for debit transactions (FAILED - 23)
+    #debit?
+      returns true for debit transactions (FAILED - 24)
+      returns false for credit transactions (FAILED - 25)
+      returns false for refund transactions (FAILED - 26)
+      returns false for initial transactions (FAILED - 27)
+    #amount_display
+      formats positive amounts correctly (FAILED - 28)
+      formats negative amounts as positive with dollar sign (FAILED - 29)
+      formats zero amount (FAILED - 30)
+      formats small amounts correctly (FAILED - 31)
+      rounds to two decimal places (FAILED - 32)
+  edge cases
+    handles very large amounts (FAILED - 33)
+    allows description to be nil (FAILED - 34)
+    allows description to be present (FAILED - 35)
+
+QueueItem
+  has a queue_session association
+  has a song association
+  is valid with title and artist only (no song)
+  orders by base_priority asc, then created_at asc (for display) (FAILED - 36)
+  orders by base_priority asc, then vote_score desc, then created_at asc (for playback) (FAILED - 37)
+  validations
+    is valid with title and artist and song
+
+QueueSession
+  associations
+    belongs to venue
+    has many queue_items
+  validations
+    validates presence of venue
+    validates presence of join_code
+    is valid with venue and join_code
+    validates status is one of allowed values
+  join_code
+    validates presence of join_code
+    generates a 6-digit code
+    allows updating the join code
+  status
+    allows active status
+    allows paused status
+    allows ended status
+    rejects invalid status
+  timestamps
+    records started_at
+    records ended_at when session ends
+    allows nil ended_at for active sessions
+  scopes
+    filters active sessions
+    filters ended sessions
+    finds session by join_code
+  creation
+    can be created with all attributes
+  relationships
+    can have queue items
+    destroys associated queue_items when session is deleted
+
+Song
+  associations
+    has many queue_items
+    has many users_who_queued through queue_items
+  validations
+    validates presence of title
+    validates presence of artist
+    is valid with title and artist
+  #album_art
+    returns cover_url when present
+    returns placeholder when cover_url is blank
+  methods
+    can be created and saved
+
+User
+  associations
+    has many queue_items
+    has many queued_songs through queue_items
+    has many hosted_venues
+  validations
+    is valid with display_name and auth_provider
+    is invalid without display_name
+    is invalid without auth_provider
+    allows guest without email/password
+    requires email/password for general_user
+    downcases email
+  #authenticate
+    returns user when password is correct
+    returns false when password is incorrect
+    is case sensitive for passwords
+  #total_upvotes_received
+    when user has no queue items
+      returns 0
+    when user has queue items with votes
+      returns sum of all vote counts
+    when user has queue items with zero votes
+      returns 0
+  #queue_summary
+    returns hash with username, songs count, and upvotes
+    with queue items
+      returns correct counts
+  #is_host?
+    returns true if user has hosted venues
+    returns false if user has no hosted venues
+  email uniqueness
+    prevents duplicate emails
+    is case-insensitive for email uniqueness
+  scopes
+    finds user by email
+    finds user by display_name
+
+Venue
+  associations
+    has many queue_sessions
+    belongs to host_user
+  validations
+    validates presence of name
+    validates presence of host_user_id
+    validates presence of venue_code on update
+    validates uniqueness of venue_code
+    validates format of venue_code (must be 6 digits)
+    is valid with name, host_user_id, and venue_code
+  creation
+    can be created with all attributes
+    automatically generates a venue code on creation
+    uses provided venue code if given
+    generates unique venue codes
+  #active_session
+    returns the active queue session
+    returns nil if no active session
+    returns first active session when multiple exist
+    ignores ended sessions
+  queue_sessions relationship
+    can have multiple queue sessions
+    destroys associated queue_sessions when venue is deleted
+  venue code methods
+    #generate_venue_code
+      generates a new venue code
+    #regenerate_venue_code
+      regenerates venue code and saves it
+      returns false if save fails
+    .find_by_venue_code
+      finds venue by its code
+      returns nil for non-existent code
+      returns nil for invalid format
+      returns nil for nil input
+  scopes
+    finds venues by name
+    finds venues by host_user_id
+
+Admin::BalanceTransactionsController
+  GET /admin/balance_transactions
+    displays users and recent transactions (FAILED - 38)
+    orders users by created_at desc (FAILED - 39)
+    limits recent transactions to 50 (FAILED - 40)
+    requires admin access (FAILED - 41)
+  GET /admin/balance_transactions/:id
+    shows user's transaction history (FAILED - 42)
+    orders transactions by created_at desc (FAILED - 43)
+  POST /admin/balance_transactions/:id/add_credit
+    with valid amount
+      adds credit to user's balance and redirects with notice (FAILED - 44)
+    with zero amount
+      redirects with alert (FAILED - 45)
+    with negative amount
+      redirects with alert (FAILED - 46)
+  authorization
+    when not admin
+      redirects index (FAILED - 47)
+      redirects show (FAILED - 48)
+      redirects add_credit (FAILED - 49)
+    when not logged in
+      redirects to login (FAILED - 50)
+
+Admin::BaseController
+  admin access control
+    when user is admin
+      allows access to admin dashboard
+      allows access to admin users
+    when user is not admin (regular user)
+      redirects to mainpage with alert for dashboard
+      redirects to mainpage with alert for users
+    when user is host (not admin)
+      redirects to mainpage with alert
+    when not logged in
+      redirects to login page
+
+Admin::VenuesController
+  GET /admin/venues
+    displays all venues ordered by name
+    requires admin access
+  GET /admin/venues/:id
+    shows venue details and sessions (FAILED - 51)
+  GET /admin/venues/new
+    displays new venue form
+  POST /admin/venues
+    with valid params
+      creates a new venue and redirects (FAILED - 52)
+    with invalid params
+      renders new template with errors
+  GET /admin/venues/:id/edit
+    displays edit venue form
+  PATCH /admin/venues/:id
+    with valid params
+      updates the venue and redirects
+    with invalid params
+      renders edit template with errors
+  PATCH /admin/venues/:id/update_pricing
+    with valid pricing params
+      updates pricing settings and redirects with notice
+    with invalid pricing params
+      redirects with alert
+  authorization
+    when not admin
+      redirects index
+      redirects show
+      redirects new
+      redirects create
+      redirects edit
+      redirects update
+      redirects update_pricing
+
+Admin::Dashboard
+  shows counts for users, venues, active sessions, and songs (FAILED - 53)
+  blocks non-admin users
+
+Admin::Users
+  GET /admin/users
+    renders the list and hides self actions
+    blocks non-admin users
+  PATCH member actions
+    shows '(no self-actions)' for the admin's own row and does not render any action buttons
+    promotes another user to admin
+    promotes another user to host and can demote
+
+Api::PricingController
+  GET /api/pricing/current_prices
+    with active queue session
+      returns pricing for positions 1-10 (FAILED - 54)
+      uses current queue session when no queue_session_id provided (FAILED - 55)
+    without active queue session
+      returns not found error (FAILED - 56)
+  GET /api/pricing/position_price
+    with valid position
+      returns price for specific position (FAILED - 57)
+      uses current queue session when no queue_session_id provided (FAILED - 58)
+    with invalid position
+      returns bad request for position 0 (FAILED - 59)
+      returns bad request for negative position (FAILED - 60)
+      returns bad request when position not provided (FAILED - 61)
+    without active queue session
+      returns bad request error (FAILED - 62)
+  GET /api/pricing/factors
+    with active queue session
+      returns pricing factors (FAILED - 63)
+      uses current queue session when no queue_session_id provided (FAILED - 64)
+    without active queue session
+      returns not found error (FAILED - 65)
+  authentication
+    when not authenticated
+      allows API calls (skip_before_action :verify_authenticity_token) (FAILED - 66)
+  when DynamicPricingService is not defined
+    still returns pricing data (FAILED - 67)
+
+Authentication
+  redirects to /login when visiting protected pages without session
+  allows access after login
+  returns 401 for JSON when unauthenticated
+
+Canonical email rules
+  treats case-insensitive, ignores dots and plus-tag as the same account
+
+Host::QueueSessionsController
+  POST /host/venues/:venue_id/queue_sessions
+    when venue has no active session
+      creates a new queue session and returns join code (FAILED - 68)
+    when venue already has active session
+      returns error and does not create new session (FAILED - 69)
+    when user is not the venue host
+      redirects with not authorized message (FAILED - 70)
+    when user is not a host
+      redirects with permission denied (FAILED - 71)
+  PATCH /host/queue_sessions/:id/pause
+    when user is the venue host
+      pauses the session and redirects with notice
+    when user is not the venue host
+      redirects with not authorized message
+  PATCH /host/queue_sessions/:id/resume
+    when user is the venue host
+      resumes the session and redirects with notice
+    when user is not the venue host
+      redirects with not authorized message
+  PATCH /host/queue_sessions/:id/end
+    when user is the venue host
+      ends the session and redirects with notice
+    when user is not the venue host
+      redirects with not authorized message
+  authorization
+    when not logged in
+      redirects create to login (FAILED - 72)
+      redirects pause to login
+      redirects resume to login
+      redirects end to login
+    when regular user (not host)
+      denies access to create (FAILED - 73)
+      denies access to pause
+
+Host::VenuesController
+  GET /host/venues
+    displays only venues owned by the current host
+  GET /host/venues/new
+    displays new venue form (FAILED - 74)
+    requires host role (FAILED - 75)
+  POST /host/venues
+    with valid params
+      creates a new venue for the host
+    with invalid params
+      renders new template with errors
+  GET /host/venues/:id
+    for owned venue
+      displays venue details and sessions
+    for venue owned by another host
+      redirects with not authorized message
+  GET /host/venues/:id/edit
+    for owned venue
+      displays edit form
+    for venue owned by another host
+      redirects with not authorized message
+  PATCH /host/venues/:id
+    for owned venue with valid params
+      updates the venue and redirects
+    for owned venue with invalid params
+      renders edit template with errors
+    for venue owned by another host
+      redirects with not authorized message (FAILED - 76)
+  DELETE /host/venues/:id
+    for owned venue
+      destroys the venue and redirects
+    for venue owned by another host
+      redirects with not authorized message (FAILED - 77)
+  GET /host/venues/:id/dashboard
+    displays dashboard with active session and queue items (FAILED - 78)
+  POST /host/venues/:id/create_session
+    when no active session exists
+      creates a new session and redirects with notice
+    when active session already exists
+      redirects with alert (FAILED - 79)
+  POST /host/venues/:id/start_session
+    creates a new session
+  POST /host/venues/:id/pause_session
+    pauses the active session (FAILED - 80)
+  POST /host/venues/:id/resume_session
+    resumes the paused session (FAILED - 81)
+  POST /host/venues/:id/end_session
+    ends the active session (FAILED - 82)
+  POST /host/venues/:id/regenerate_code
+    regenerates the join code for active session (FAILED - 83)
+    when no active session
+      redirects with alert (FAILED - 84)
+  PATCH /host/venues/:id/regenerate_venue_code
+    regenerates the venue code
+  authorization
+    when not logged in
+      redirects to login
+    when regular user (not host)
+      denies access to index
+      denies access to create (FAILED - 85)
+
+HostVenuesController
+  GET /host_venues
+    displays venues for the current host
+    requires host role
+  GET /host_venues/new
+    displays new venue form
+  POST /host_venues
+    with valid params
+      creates a new venue and redirects
+    with invalid params
+      renders new template with errors
+  GET /host_venues/:id
+    displays venue details and sessions (FAILED - 86)
+  GET /host_venues/:id/edit
+    displays edit form
+  PATCH /host_venues/:id
+    with valid params
+      updates the venue and redirects
+    with invalid params
+      renders edit template with errors
+  DELETE /host_venues/:id
+    destroys the venue and redirects (FAILED - 87)
+  POST /host_venues/:venue_id/create_session
+    when no active session exists
+      creates a new session with join code (FAILED - 88)
+    when active session already exists
+      redirects with alert (FAILED - 89)
+  POST /host_venues/:venue_id/pause_session
+    pauses the session (FAILED - 90)
+  POST /host_venues/:venue_id/end_session
+    ends the session (FAILED - 91)
+  POST /host_venues/:venue_id/regenerate_code
+    regenerates the join code (FAILED - 92)
+  authorization
+    when not logged in
+      redirects to login
+    when regular user (not host)
+      denies access to index
+      denies access to create (FAILED - 93)
+      denies access to show
+
+Login
+  GET /login
+    returns http success
+    displays login form
+  GET /
+    redirects to login
+
+Main
+  GET /mainpage
+    shows the welcome card and buttons
+    shows empty state when there are no sessions
+    lists a live session with now playing track (FAILED - 94)
+
+Email/Password Auth
+  POST /users (sign up)
+    creates a general_user and logs in
+  POST /session (sign in)
+    logs in with correct credentials
+    rejects invalid password
+
+Profiles
+  GET /profile
+    returns http success
+    displays username
+    displays stats section
+    with no queue items
+      shows empty state
+      shows zero stats
+    with queue items
+      displays song title
+      displays artist name
+      displays upvote count
+      displays status badge
+
+QueueItem
+  is valid with title and artist
+  orders by base_priority asc, then created_at asc (for display) (FAILED - 95)
+  orders by base_priority asc, then vote_score desc, then created_at asc (for playback) (FAILED - 96)
+
+QueueItemsController
+  GET /queue_items?queue_session_id=...
+    returns pending items ordered by base_priority, created_at
+    returns 422 when queue_session_id is missing
+  POST /queue_items
+    creates a queue item via search form params
+    rejects creation when user has insufficient balance (FAILED - 97)
+  PATCH /queue_items/:id/vote
+    increments vote_count by delta
+  GET /queue_items/:id
+    shows a queue item as JSON
+    returns 404 for non-existent queue item
+    redirects to queue path with alert for non-existent item (HTML)
+  DELETE /queue_items/:id
+    destroys the queue item and returns JSON success
+    destroys the queue item and redirects to queue path (HTML)
+    handles non-existent queue item
+  POST /queue_items/:id/upvote
+    increments vote_score and returns JSON
+    increments vote_score and redirects (HTML)
+  POST /queue_items/:id/downvote
+    decrements vote_score and returns JSON
+    decrements vote_score and redirects (HTML)
+  POST /queue_items (HTML format)
+    creates a queue item and redirects with notice
+    handles no queue session error (HTML)
+    handles insufficient balance error (HTML) (FAILED - 98)
+    handles queue item save failure
+  error handling
+    handles RecordNotFound in set_queue_item for JSON
+    handles RecordNotFound in set_queue_item for HTML
+
+QueueItems
+  creates an item from the search form params
+  upvotes and returns the new score
+  downvotes and returns the new score
+  destroys a queue item
+
+QueuesController
+  GET /queue (show)
+    with queue items
+      displays unplayed queue items ordered by vote_score DESC
+      shows the currently playing track
+      displays the access code
+    without an active queue session
+      redirects to root with alert
+  POST /queue/start_playback
+    with available songs
+      starts playback of the next song with highest vote score
+    with song without preview URL
+      returns error when song has no preview URL
+    with empty queue
+      returns error when queue is empty
+  POST /queue/stop_playback
+    stops playback and clears currently playing status
+  POST /queue/next_track
+    with available songs
+      advances to the next track with highest vote score
+    with song without preview URL
+      returns error when next song has no preview URL
+    with no more songs
+      returns error when no more songs in queue
+  GET /queue/state
+    returns the current queue state as JSON (FAILED - 99)
+  queue session fallback behavior
+    when session ID exists but queue session not found
+      falls back to first active session
+    when no session ID and no active sessions
+      redirects with alert
+
+Routing Flow
+  Role-based redirects after login
+    when admin logs in
+      redirects to admin dashboard
+    when host logs in
+      redirects to host venues index (FAILED - 100)
+    when regular user logs in
+      redirects to mainpage
+    when guest logs in
+      redirects to mainpage
+  Already logged in users visiting login page
+    when admin visits login page
+      redirects to admin dashboard (FAILED - 101)
+    when host visits login page
+      redirects to host venues (FAILED - 102)
+    when regular user visits login page
+      redirects to mainpage
+  Host accessing host-only areas
+    can access host venues index
+    can access new venue form
+    can create a venue
+  Regular user blocked from host areas
+    cannot access host venues index
+    cannot access new venue form (FAILED - 103)
+    cannot create a venue (FAILED - 104)
+
+Scan
+  GET /scan
+    returns http success
+    displays scan interface
+  POST /scan (join_by_code)
+    with venue code
+      handles venue code in 'code' parameter
+      when venue has active session
+        joins venue's active session successfully
+        sets the current queue session
+      when venue has no active session
+        shows appropriate error message
+    with session code
+      joins session successfully
+      does not join ended session
+    with invalid code
+      rejects code with wrong format
+      rejects too short code
+      rejects non-existent code
+    error handling
+      handles database errors gracefully
+  POST /join (backwards compatibility)
+    handles join endpoint same as scan
+
+Search
+  GET /search
+    returns http success
+    displays search form
+    shows search results when query provided
+
+Sessions
+  POST /session creates/returns a user (Basic check)
+  creates a user with guest provider
+  returns user data as JSON
+  POST /session (HTML)
+    creates a guest session and redirects to mainpage
+
+SongsController
+  returns top 5 results matching title or artist (case-insensitive) (FAILED - 105)
+
+Users
+  GET /signup
+    returns http success
+    displays signup form
+  POST /users
+    creates a new user with valid params (FAILED - 106)
+    fails with invalid params (FAILED - 107)
+    fails with short password (FAILED - 108)
+  GET /users/:id/summary
+    returns user summary as JSON (FAILED - 109)
+
+VenuesController
+  shows a venue (FAILED - 110)
+
+Venues
+  venue model integration
+    can create venues with all attributes
+    can have queue sessions
+
+DynamicPricingService
+  .calculate_position_price
+    when pricing is disabled
+      returns 0 (FAILED - 111)
+    with single user (no competition)
+      returns position-adjusted price (position 1 = 3x base) (FAILED - 112)
+    with moderate demand (5 users, 10 songs)
+      calculates price with demand multiplier (FAILED - 113)
+      charges more for earlier positions (FAILED - 114)
+    with high demand (25 users, 50 songs)
+      triggers surge pricing (FAILED - 115)
+      respects maximum price cap (FAILED - 116)
+    during peak hours
+      applies peak hour multiplier (FAILED - 117)
+  .get_active_user_count
+    counts unique users in last 30 minutes (FAILED - 118)
+  .get_queue_velocity
+    calculates songs per minute over last 10 minutes (FAILED - 119)
+    ignores songs older than 10 minutes (FAILED - 120)
+  .time_of_day_factor
+    with normal peak hours (19-23)
+      returns 1.0 during off-peak hours (FAILED - 121)
+      returns peak multiplier during peak hours (FAILED - 122)
+    with overnight peak hours (22-2)
+      handles midnight wraparound correctly (FAILED - 123)
+
+JoinCodeGenerator
+  .generate
+    generates a 6-digit code
+    generates unique codes
+    generates codes with leading zeros when needed
+    does not generate duplicate codes for existing sessions (FAILED - 124)
+    checks both join_code and access_code columns if they exist (FAILED - 125)
+  .generate_unique_code
+    is an alias for generate
+    generates unique codes just like generate
+  .valid_format?
+    with valid codes
+      returns true for 6-digit codes
+      accepts string input
+      accepts numeric input and converts to string (FAILED - 126)
+    with invalid codes
+      returns false for codes with wrong length
+      returns false for codes with non-digits
+      returns false for nil
+      returns false for non-string/non-numeric input
+  .find_active_session
+    with valid code
+      finds active session by join_code (FAILED - 127)
+      finds active session by access_code if column exists (FAILED - 128)
+      returns nil for non-active sessions (FAILED - 129)
+      returns nil for non-existent code (FAILED - 130)
+    with invalid code format
+      returns nil without querying database (FAILED - 131)
+  private methods
+    .code_taken?
+      checks if code is taken in join_code column (FAILED - 132)
+      checks if code is taken in access_code column if it exists (FAILED - 133)
+  thread safety
+    can generate codes concurrently without issues
+
+QueuePositionService
+  .insert_at_position
+    updates queue session last_activity_at (FAILED - 134)
+    with empty queue
+      inserts item at position 1 (FAILED - 135)
+    with existing items
+      inserts new item and bumps others down (FAILED - 136)
+      processes refunds for bumped items (FAILED - 137)
+  .calculate_refund
+    returns 0 if position improves (FAILED - 138)
+    calculates refund as difference between paid and new position price (FAILED - 139)
+    never refunds more than paid amount (FAILED - 140)
+  .process_bump_refund
+    adds refund amount to item (FAILED - 141)
+    accumulates multiple refunds (FAILED - 142)
+  .remove_item
+    marks item as cancelled (FAILED - 143)
+    reorders remaining items (FAILED - 144)
+
+VenueCodeGenerator
+  .generate_unique_code
+    generates a 6-digit code
+    generates unique codes
+    generates different codes when called multiple times
+    does not generate already taken codes
+  .generate
+    is an alias for generate_unique_code
+  .valid_format?
+    returns true for valid 6-digit codes
+    returns false for codes with wrong length
+    returns false for non-numeric codes
+    returns false for nil
+    handles numeric input
+  .find_by_code
+    finds venue by code
+    returns nil for non-existent code
+    returns nil for invalid format
+    returns nil for nil input
+    returns nil for empty string
+    handles numeric input
+  private methods
+    .code_taken?
+      returns true for taken codes
+      returns false for available codes
+
+Failures:
+
+  1) QueuesController has a state action defined
+     Failure/Error: expect(QueuesController.instance_methods).to include(:state)
+
+       expected [:show, :start_playback, :stop_playback, :next_track, :queue_state, :after_sign_in_path, :authenticat...stub, :stub_chain, :instance_eval, :instance_exec, :as_null_object, :__id__, :received_message?, :!] to include :state
+       Diff:
+       @@ -1 +1,437 @@
+       -[:state]
+       +[:show,
+       + :start_playback,
+       + :stop_playback,
+       + :next_track,
+       + :queue_state,
+       + :after_sign_in_path,
+       + :authenticate_user!,
+       + :require_login,
+       + :require_host!,
+       + :require_admin!,
+       + :_routes,
+       + :users_path,
+       + :logout_path,
+       + :session_path,
+       + :join_path,
+       + :scan_path,
+       + :upvote_queue_item_path,
+       + :vote_queue_item_path,
+       + :downvote_queue_item_path,
+       + :queue_item_path,
+       + :queue_items_path,
+       + :start_playback_queue_path,
+       + :end_host_queue_session_path,
+       + :next_track_queue_path,
+       + :pause_host_queue_session_path,
+       + :stop_playback_queue_path,
+       + :resume_host_queue_session_path,
+       + :signup_path,
+       + :state_queue_path,
+       + :admin_venues_path,
+       + :user_summary_path,
+       + :venue_path,
+       + :new_host_venue_path,
+       + :edit_host_venue_path,
+       + :new_admin_user_path,
+       + :dashboard_host_venue_path,
+       + :edit_admin_user_path,
+       + :start_session_host_venue_path,
+       + :admin_user_path,
+       + :resume_session_host_venue_path,
+       + :pause_session_host_venue_path,
+       + :create_session_host_venue_path,
+       + :end_session_host_venue_path,
+       + :regenerate_code_host_venue_path,
+       + :regenerate_venue_code_host_venue_path,
+       + :api_pricing_current_prices_path,
+       + :api_pricing_position_price_path,
+       + :api_pricing_factors_path,
+       + :root_path,
+       + :admin_balance_transactions_path,
+       + :rails_health_check_path,
+       + :admin_balance_transaction_path,
+       + :add_credit_admin_balance_transaction_path,
+       + :profile_path,
+       + :host_venue_path,
+       + :admin_users_path,
+       + :mainpage_path,
+       + :login_path,
+       + :host_venues_path,
+       + :queue_path,
+       + :admin_venue_path,
+       + :new_admin_venue_path,
+       + :edit_admin_venue_path,
+       + :update_pricing_admin_venue_path,
+       + :search_path,
+       + :admin_dashboard_path,
+       + :promote_to_admin_admin_user_path,
+       + :promote_to_host_admin_user_path,
+       + :demote_admin_user_path,
+       + :songs_path,
+       + :songs_search_path,
+       + :songs_price_preview_path,
+       + :auth_failure_path,
+       + :vote_queue_item_url,
+       + :upvote_queue_item_url,
+       + :downvote_queue_item_url,
+       + :queue_items_url,
+       + :queue_item_url,
+       + :start_playback_queue_url,
+       + :next_track_queue_url,
+       + :stop_playback_queue_url,
+       + :state_queue_url,
+       + :queue_url,
+       + :venue_url,
+       + :admin_dashboard_url,
+       + :promote_to_host_admin_user_url,
+       + :promote_to_admin_admin_user_url,
+       + :demote_admin_user_url,
+       + :admin_users_url,
+       + :new_admin_user_url,
+       + :edit_admin_user_url,
+       + :root_url,
+       + :admin_user_url,
+       + :update_pricing_admin_venue_url,
+       + :admin_venues_url,
+       + :new_admin_venue_url,
+       + :edit_admin_venue_url,
+       + :admin_venue_url,
+       + :admin_balance_transaction_url,
+       + :add_credit_admin_balance_transaction_url,
+       + :admin_balance_transactions_url,
+       + :api_pricing_current_prices_url,
+       + :api_pricing_position_price_url,
+       + :api_pricing_factors_url,
+       + :dashboard_host_venue_url,
+       + :create_session_host_venue_url,
+       + :start_session_host_venue_url,
+       + :pause_session_host_venue_url,
+       + :resume_session_host_venue_url,
+       + :end_session_host_venue_url,
+       + :regenerate_code_host_venue_url,
+       + :regenerate_venue_code_host_venue_url,
+       + :host_venues_url,
+       + :new_host_venue_url,
+       + :edit_host_venue_url,
+       + :host_venue_url,
+       + :pause_host_queue_session_url,
+       + :resume_host_queue_session_url,
+       + :end_host_queue_session_url,
+       + :rails_health_check_url,
+       + :login_url,
+       + :search_url,
+       + :songs_url,
+       + :songs_search_url,
+       + :songs_price_preview_url,
+       + :signup_url,
+       + :users_url,
+       + :user_summary_url,
+       + :profile_url,
+       + :logout_url,
+       + :session_url,
+       + :mainpage_url,
+       + :scan_url,
+       + :join_url,
+       + :auth_failure_url,
+       + :__callbacks,
+       + :default_asset_host_protocol,
+       + :raise_on_missing_callback_actions=,
+       + :alert,
+       + :default_url_options?,
+       + :request_forgery_protection_token=,
+       + :raise_on_missing_callback_actions,
+       + :include_all_helpers,
+       + :perform_caching,
+       + :_renderers,
+       + :_renderers=,
+       + :raise_on_open_redirects,
+       + :raise_on_open_redirects=,
+       + :rescue_handlers,
+       + :assets_dir,
+       + :helpers_path,
+       + :helpers_path=,
+       + :etaggers,
+       + :rescue_handlers=,
+       + :enable_fragment_cache_logging,
+       + :javascripts_dir,
+       + :stylesheets_dir,
+       + :asset_host,
+       + :relative_url_root,
+       + :etaggers=,
+       + :etag_with_template_digest,
+       + :default_url_options,
+       + :default_url_options=,
+       + :request_forgery_protection_token,
+       + :_wrapper_options=,
+       + :forgery_protection_strategy,
+       + :flash,
+       + :notice,
+       + :default_asset_host_protocol=,
+       + :helpers_path?,
+       + :include_all_helpers=,
+       + :include_all_helpers?,
+       + :forgery_protection_strategy=,
+       + :allow_forgery_protection,
+       + :assets_dir=,
+       + :_layout_conditions?,
+       + :javascripts_dir=,
+       + :stylesheets_dir=,
+       + :asset_host=,
+       + :relative_url_root=,
+       + :_renderers?,
+       + :etag_with_template_digest=,
+       + :logger,
+       + :etag_with_template_digest?,
+       + :log_warning_on_csrf_failure,
+       + :etaggers?,
+       + :perform_caching=,
+       + :enable_fragment_cache_logging=,
+       + :_helper_methods,
+       + :default_static_extension,
+       + :default_static_extension=,
+       + :_view_cache_dependencies,
+       + :fragment_cache_keys,
+       + :fragment_cache_keys=,
+       + :_view_cache_dependencies=,
+       + :per_form_csrf_tokens=,
+       + :allow_forgery_protection=,
+       + :fragment_cache_keys?,
+       + :log_warning_on_csrf_failure=,
+       + :_view_cache_dependencies?,
+       + :forgery_protection_origin_check=,
+       + :per_form_csrf_tokens,
+       + :_helper_methods=,
+       + :csrf_token_storage_strategy,
+       + :csrf_token_storage_strategy=,
+       + :_wrapper_options?,
+       + :rescue_handlers?,
+       + :logger=,
+       + :_helper_methods?,
+       + :_run_process_action_callbacks,
+       + :_process_action_callbacks,
+       + :forgery_protection_origin_check,
+       + :_wrapper_options,
+       + :_layout_conditions,
+       + :db_runtime=,
+       + :db_runtime,
+       + :main_app,
+       + :_main_app,
+       + :redirect_to,
+       + :render,
+       + :send_data,
+       + :view_runtime,
+       + :view_runtime=,
+       + :send_file,
+       + :show_detailed_exceptions?,
+       + :handler_for_rescue,
+       + :rescue_with_handler,
+       + :authenticate_with_http_token,
+       + :request_http_token_authentication,
+       + :authenticate_or_request_with_http_token,
+       + :authenticate_or_request_with_http_digest,
+       + :authenticate_with_http_digest,
+       + :request_http_digest_authentication,
+       + :authenticate_with_http_basic,
+       + :request_http_basic_authentication,
+       + :http_basic_authenticate_or_request_with,
+       + :authenticate_or_request_with_http_basic,
+       + :reset_csrf_token,
+       + :commit_csrf_token,
+       + :run_callbacks,
+       + :default_form_builder,
+       + :params=,
+       + :params,
+       + :default_render,
+       + :method_for_action,
+       + :send_action,
+       + :respond_to,
+       + :view_cache_dependencies,
+       + :cache_store,
+       + :cache_store=,
+       + :write_fragment,
+       + :combined_fragment_cache_key,
+       + :instrument_fragment_cache,
+       + :fragment_exist?,
+       + :expire_fragment,
+       + :read_fragment,
+       + :http_cache_forever,
+       + :expires_in,
+       + :no_store,
+       + :fresh_when,
+       + :stale?,
+       + :expires_now,
+       + :head,
+       + :_render_with_renderer_xml,
+       + :_render_to_body_with_renderer,
+       + :_render_with_renderer_json,
+       + :render_to_body,
+       + :_render_with_renderer_js,
+       + :render_to_string,
+       + :action_has_layout=,
+       + :_process_render_template_options,
+       + :action_has_layout?,
+       + :process,
+       + :view_context,
+       + :view_renderer,
+       + :rendered_format,
+       + :view_context_class,
+       + :_compute_redirect_to_location,
+       + :redirect_back,
+       + :redirect_back_or_to,
+       + :url_from,
+       + :benchmark,
+       + :url_options,
+       + :url_for,
+       + :optimize_routes_generation?,
+       + :full_url_for,
+       + :route_for,
+       + :edit_polymorphic_url,
+       + :edit_polymorphic_path,
+       + :new_polymorphic_url,
+       + :new_polymorphic_path,
+       + :polymorphic_url,
+       + :polymorphic_path,
+       + :helpers,
+       + :_helpers,
+       + :t,
+       + :localize,
+       + :translate,
+       + :l,
+       + :view_assigns,
+       + :template_exists?,
+       + :any_templates?,
+       + :locale=,
+       + :view_paths,
+       + :_prefixes,
+       + :formats,
+       + :locale,
+       + :details_for_lookup,
+       + :prepend_view_path,
+       + :append_view_path,
+       + :lookup_context,
+       + :formats=,
+       + :session,
+       + :dispatch,
+       + :middleware_stack?,
+       + :controller_name,
+       + :request=,
+       + :to_a,
+       + :status,
+       + :request,
+       + :content_type=,
+       + :media_type,
+       + :response_code,
+       + :response,
+       + :reset_session,
+       + :performed?,
+       + :response=,
+       + :location=,
+       + :middleware_stack,
+       + :content_type,
+       + :location,
+       + :middleware_stack=,
+       + :response_body=,
+       + :set_response!,
+       + :set_request!,
+       + :status=,
+       + :headers,
+       + :recycle!,
+       + :clear_instance_variables_between_requests,
+       + :controller_path,
+       + :action_name=,
+       + :response_body,
+       + :action_name,
+       + :available_action?,
+       + :inspect,
+       + :action_methods,
+       + :config,
+       + :require_dependency,
+       + :as_json,
+       + :to_param,
+       + :instance_variable_names,
+       + :to_query,
+       + :to_yaml,
+       + :presence,
+       + :with_options,
+       + :blank?,
+       + :html_safe?,
+       + :present?,
+       + :instance_values,
+       + :in?,
+       + :presence_in,
+       + :with,
+       + :duplicable?,
+       + :acts_like?,
+       + :deep_dup,
+       + :pretty_print_instance_variables,
+       + :pretty_print_inspect,
+       + :pretty_print_cycle,
+       + :pretty_print,
+       + :to_json,
+       + :try!,
+       + :try,
+       + :singleton_class,
+       + :dup,
+       + :itself,
+       + :methods,
+       + :singleton_methods,
+       + :protected_methods,
+       + :private_methods,
+       + :public_methods,
+       + :instance_variables,
+       + :instance_variable_get,
+       + :instance_variable_set,
+       + :instance_variable_defined?,
+       + :remove_instance_variable,
+       + :instance_of?,
+       + :kind_of?,
+       + :is_a?,
+       + :display,
+       + :public_send,
+       + :byebug,
+       + :remote_byebug,
+       + :debugger,
+       + :pretty_inspect,
+       + :class_eval,
+       + :extend,
+       + :clone,
+       + :frozen?,
+       + :<=>,
+       + :then,
+       + :tap,
+       + :yield_self,
+       + :===,
+       + :class,
+       + :!~,
+       + :nil?,
+       + :method,
+       + :public_method,
+       + :eql?,
+       + :respond_to?,
+       + :singleton_method,
+       + :define_singleton_method,
+       + :hash,
+       + :freeze,
+       + :object_id,
+       + :send,
+       + :to_s,
+       + :to_enum,
+       + :enum_for,
+       + :equal?,
+       + :__send__,
+       + :null_object?,
+       + :should,
+       + :stub,
+       + :==,
+       + :!=,
+       + :should_not,
+       + :should_receive,
+       + :should_not_receive,
+       + :unstub,
+       + :stub_chain,
+       + :instance_eval,
+       + :instance_exec,
+       + :as_null_object,
+       + :__id__,
+       + :received_message?,
+       + :!]
+     # ./spec/controllers/queues_controller_spec.rb:13:in `block (2 levels) in <top (required)>'
+
+  2) Dynamic Pricing User sees dynamic prices on search page
+     Failure/Error: let!(:venue) { create(:venue, :with_pricing_enabled, name: "Test Club") }
+
+     KeyError:
+       Trait not registered: "with_pricing_enabled"
+     # ./spec/features/dynamic_pricing_spec.rb:4:in `block (2 levels) in <top (required)>'
+     # ------------------
+     # --- Caused by: ---
+     # KeyError:
+     #   key not found: "with_pricing_enabled"
+     #   ./spec/features/dynamic_pricing_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  3) Dynamic Pricing Admin can configure venue pricing settings
+     Failure/Error: let!(:venue) { create(:venue, :with_pricing_enabled, name: "Test Club") }
+
+     KeyError:
+       Trait not registered: "with_pricing_enabled"
+     # ./spec/features/dynamic_pricing_spec.rb:4:in `block (2 levels) in <top (required)>'
+     # ------------------
+     # --- Caused by: ---
+     # KeyError:
+     #   key not found: "with_pricing_enabled"
+     #   ./spec/features/dynamic_pricing_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  4) Dynamic Pricing Prices increase with demand
+     Failure/Error: let!(:venue) { create(:venue, :with_pricing_enabled, name: "Test Club") }
+
+     KeyError:
+       Trait not registered: "with_pricing_enabled"
+     # ./spec/features/dynamic_pricing_spec.rb:4:in `block (2 levels) in <top (required)>'
+     # ------------------
+     # --- Caused by: ---
+     # KeyError:
+     #   key not found: "with_pricing_enabled"
+     #   ./spec/features/dynamic_pricing_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  5) Dynamic Pricing Position selection shows different prices
+     Failure/Error: let!(:venue) { create(:venue, :with_pricing_enabled, name: "Test Club") }
+
+     KeyError:
+       Trait not registered: "with_pricing_enabled"
+     # ./spec/features/dynamic_pricing_spec.rb:4:in `block (2 levels) in <top (required)>'
+     # ------------------
+     # --- Caused by: ---
+     # KeyError:
+     #   key not found: "with_pricing_enabled"
+     #   ./spec/features/dynamic_pricing_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  6) Dynamic Pricing User gets refund when bumped down
+     Failure/Error: let!(:venue) { create(:venue, :with_pricing_enabled, name: "Test Club") }
+
+     KeyError:
+       Trait not registered: "with_pricing_enabled"
+     # ./spec/features/dynamic_pricing_spec.rb:4:in `block (2 levels) in <top (required)>'
+     # ------------------
+     # --- Caused by: ---
+     # KeyError:
+     #   key not found: "with_pricing_enabled"
+     #   ./spec/features/dynamic_pricing_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  7) BalanceTransaction associations belongs to user
+     Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+     ActiveRecord::RecordInvalid:
+       Validation failed: Host user can't be blank
+     # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  8) BalanceTransaction associations belongs to queue_item (optional)
+     Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+     ActiveRecord::RecordInvalid:
+       Validation failed: Host user can't be blank
+     # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  9) BalanceTransaction associations can be created without queue_item
+     Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+     ActiveRecord::RecordInvalid:
+       Validation failed: Host user can't be blank
+     # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  10) BalanceTransaction validations requires amount_cents
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  11) BalanceTransaction validations requires transaction_type
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  12) BalanceTransaction validations requires balance_after_cents
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  13) BalanceTransaction validations validates transaction_type is in allowed list
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  14) BalanceTransaction validations accepts valid transaction types
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  15) BalanceTransaction validations validates balance_after_cents is not negative
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  16) BalanceTransaction validations allows balance_after_cents to be zero
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  17) BalanceTransaction scopes .credits returns credit, refund, and initial transactions
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  18) BalanceTransaction scopes .debits returns only debit transactions
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  19) BalanceTransaction scopes .recent orders by created_at desc
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  20) BalanceTransaction instance methods #credit? returns true for credit transactions
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  21) BalanceTransaction instance methods #credit? returns true for refund transactions
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  22) BalanceTransaction instance methods #credit? returns true for initial transactions
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  23) BalanceTransaction instance methods #credit? returns false for debit transactions
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  24) BalanceTransaction instance methods #debit? returns true for debit transactions
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  25) BalanceTransaction instance methods #debit? returns false for credit transactions
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  26) BalanceTransaction instance methods #debit? returns false for refund transactions
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  27) BalanceTransaction instance methods #debit? returns false for initial transactions
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  28) BalanceTransaction instance methods #amount_display formats positive amounts correctly
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  29) BalanceTransaction instance methods #amount_display formats negative amounts as positive with dollar sign
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  30) BalanceTransaction instance methods #amount_display formats zero amount
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  31) BalanceTransaction instance methods #amount_display formats small amounts correctly
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  32) BalanceTransaction instance methods #amount_display rounds to two decimal places
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  33) BalanceTransaction edge cases handles very large amounts
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  34) BalanceTransaction edge cases allows description to be nil
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  35) BalanceTransaction edge cases allows description to be present
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/models/balance_transaction_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  36) QueueItem orders by base_priority asc, then created_at asc (for display)
+      Failure/Error: expect(QueueItem.by_position).to eq([paid_item, high_vote, low_vote])
+
+        expected: [#<QueueItem id: 1, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_coun...ition_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]
+             got: #<ActiveRecord::Relation [#<QueueItem id: 2, song_id: nil, queue_session_id: 1, user_id: nil, base_pr...tion_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]>
+
+        (compared using ==)
+
+        Diff:
+        @@ -1,3 +1,75 @@
+        -[#<QueueItem id: 1, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 1, status: "pending", created_at: "2025-12-01 23:47:09.716354000 +0000", updated_at: "2025-12-01 23:50:09.716516000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 1, title: "Paid", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>,
+        - #<QueueItem id: 2, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 2, status: "pending", created_at: "2025-12-01 23:48:09.717138000 +0000", updated_at: "2025-12-01 23:50:09.717290000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 3, title: "High Vote", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>,
+        - #<QueueItem id: 3, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 2, status: "pending", created_at: "2025-12-01 23:49:09.717753000 +0000", updated_at: "2025-12-01 23:50:09.717885000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 1, title: "Low Vote", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]
+        +[#<QueueItem:0x000000011dc92bd8
+        +  id: 2,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 2,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:48:09.717138000 +0000",
+        +  updated_at: "2025-12-01 23:50:09.717290000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 3,
+        +  title: "High Vote",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>,
+        + #<QueueItem:0x000000011dc92a98
+        +  id: 1,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 1,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:47:09.716354000 +0000",
+        +  updated_at: "2025-12-01 23:50:09.716516000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 1,
+        +  title: "Paid",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>,
+        + #<QueueItem:0x000000011dc92958
+        +  id: 3,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 2,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:49:09.717753000 +0000",
+        +  updated_at: "2025-12-01 23:50:09.717885000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 1,
+        +  title: "Low Vote",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>]
+      # ./spec/models/queue_item_spec.rb:35:in `block (2 levels) in <top (required)>'
+
+  37) QueueItem orders by base_priority asc, then vote_score desc, then created_at asc (for playback)
+      Failure/Error: expect(QueueItem.by_votes).to eq([paid_item, high_vote, low_vote])
+
+        expected: [#<QueueItem id: 1, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_coun...ition_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]
+             got: #<ActiveRecord::Relation [#<QueueItem id: 2, song_id: nil, queue_session_id: 1, user_id: nil, base_pr...tion_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]>
+
+        (compared using ==)
+
+        Diff:
+        @@ -1,3 +1,75 @@
+        -[#<QueueItem id: 1, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 1, status: "pending", created_at: "2025-12-01 23:47:09.723721000 +0000", updated_at: "2025-12-01 23:50:09.723855000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 1, title: "Paid", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>,
+        - #<QueueItem id: 2, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 2, status: "pending", created_at: "2025-12-01 23:48:09.724276000 +0000", updated_at: "2025-12-01 23:50:09.724403000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 3, title: "High Vote", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>,
+        - #<QueueItem id: 3, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 2, status: "pending", created_at: "2025-12-01 23:49:09.724819000 +0000", updated_at: "2025-12-01 23:50:09.724945000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 1, title: "Low Vote", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]
+        +[#<QueueItem:0x00000001091752a0
+        +  id: 2,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 2,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:48:09.724276000 +0000",
+        +  updated_at: "2025-12-01 23:50:09.724403000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 3,
+        +  title: "High Vote",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>,
+        + #<QueueItem:0x0000000109175160
+        +  id: 1,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 1,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:47:09.723721000 +0000",
+        +  updated_at: "2025-12-01 23:50:09.723855000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 1,
+        +  title: "Paid",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>,
+        + #<QueueItem:0x0000000109175020
+        +  id: 3,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 2,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:49:09.724819000 +0000",
+        +  updated_at: "2025-12-01 23:50:09.724945000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 1,
+        +  title: "Low Vote",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>]
+      # ./spec/models/queue_item_spec.rb:43:in `block (2 levels) in <top (required)>'
+
+  38) Admin::BalanceTransactionsController GET /admin/balance_transactions displays users and recent transactions
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  39) Admin::BalanceTransactionsController GET /admin/balance_transactions orders users by created_at desc
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  40) Admin::BalanceTransactionsController GET /admin/balance_transactions limits recent transactions to 50
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  41) Admin::BalanceTransactionsController GET /admin/balance_transactions requires admin access
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  42) Admin::BalanceTransactionsController GET /admin/balance_transactions/:id shows user's transaction history
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  43) Admin::BalanceTransactionsController GET /admin/balance_transactions/:id orders transactions by created_at desc
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  44) Admin::BalanceTransactionsController POST /admin/balance_transactions/:id/add_credit with valid amount adds credit to user's balance and redirects with notice
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  45) Admin::BalanceTransactionsController POST /admin/balance_transactions/:id/add_credit with zero amount redirects with alert
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  46) Admin::BalanceTransactionsController POST /admin/balance_transactions/:id/add_credit with negative amount redirects with alert
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  47) Admin::BalanceTransactionsController authorization when not admin redirects index
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  48) Admin::BalanceTransactionsController authorization when not admin redirects show
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  49) Admin::BalanceTransactionsController authorization when not admin redirects add_credit
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  50) Admin::BalanceTransactionsController authorization when not logged in redirects to login
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin/balance_transactions_spec.rb:9:in `block (2 levels) in <top (required)>'
+
+  51) Admin::VenuesController GET /admin/venues/:id shows venue details and sessions
+      Failure/Error: <%= DynamicPricingService.get_active_user_count(session) %>
+
+      ActionView::Template::Error:
+        private method `get_active_user_count' called for class DynamicPricingService
+      # ./app/views/admin/venues/show.html.erb:107:in `block in _app_views_admin_venues_show_html_erb__1771283829405104932_40200'
+      # ./app/views/admin/venues/show.html.erb:97:in `_app_views_admin_venues_show_html_erb__1771283829405104932_40200'
+      # ./spec/requests/admin/venues_spec.rb:38:in `block (3 levels) in <top (required)>'
+      # ------------------
+      # --- Caused by: ---
+      # NoMethodError:
+      #   private method `get_active_user_count' called for class DynamicPricingService
+      #   ./app/views/admin/venues/show.html.erb:107:in `block in _app_views_admin_venues_show_html_erb__1771283829405104932_40200'
+
+  52) Admin::VenuesController POST /admin/venues with valid params creates a new venue and redirects
+      Failure/Error:
+        expect {
+          post admin_venues_path, params: {
+            venue: {
+              name: "New Venue",
+              location: "789 Pine St",
+              capacity: 150
+            }
+          }
+        }.to change(Venue, :count).by(1)
+
+        expected `Venue.count` to have changed by 1, but was changed by 0
+      # ./spec/requests/admin/venues_spec.rb:60:in `block (4 levels) in <top (required)>'
+
+  53) Admin::Dashboard shows counts for users, venues, active sessions, and songs
+      Failure/Error: Venue.create!(name: "V1")
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/admin_dashboard_spec.rb:16:in `block (2 levels) in <top (required)>'
+
+  54) Api::PricingController GET /api/pricing/current_prices with active queue session returns pricing for positions 1-10
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  55) Api::PricingController GET /api/pricing/current_prices with active queue session uses current queue session when no queue_session_id provided
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  56) Api::PricingController GET /api/pricing/current_prices without active queue session returns not found error
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  57) Api::PricingController GET /api/pricing/position_price with valid position returns price for specific position
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  58) Api::PricingController GET /api/pricing/position_price with valid position uses current queue session when no queue_session_id provided
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  59) Api::PricingController GET /api/pricing/position_price with invalid position returns bad request for position 0
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  60) Api::PricingController GET /api/pricing/position_price with invalid position returns bad request for negative position
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  61) Api::PricingController GET /api/pricing/position_price with invalid position returns bad request when position not provided
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  62) Api::PricingController GET /api/pricing/position_price without active queue session returns bad request error
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  63) Api::PricingController GET /api/pricing/factors with active queue session returns pricing factors
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  64) Api::PricingController GET /api/pricing/factors with active queue session uses current queue session when no queue_session_id provided
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  65) Api::PricingController GET /api/pricing/factors without active queue session returns not found error
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  66) Api::PricingController authentication when not authenticated allows API calls (skip_before_action :verify_authenticity_token)
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  67) Api::PricingController when DynamicPricingService is not defined still returns pricing data
+      Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St") }
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/api/pricing_spec.rb:5:in `block (2 levels) in <top (required)>'
+
+  68) Host::QueueSessionsController POST /host/venues/:venue_id/queue_sessions when venue has no active session creates a new queue session and returns join code
+      Failure/Error: post host_venue_queue_sessions_path(venue), as: :json
+
+      NoMethodError:
+        undefined method `host_venue_queue_sessions_path' for #<RSpec::ExampleGroups::HostQueueSessionsController::POSTHostVenuesVenueIdQueueSessions::WhenVenueHasNoActiveSession:0x000000010fd51e10>
+      # ./spec/requests/host/queue_sessions_spec.rb:18:in `block (5 levels) in <top (required)>'
+      # ./spec/requests/host/queue_sessions_spec.rb:17:in `block (4 levels) in <top (required)>'
+
+  69) Host::QueueSessionsController POST /host/venues/:venue_id/queue_sessions when venue already has active session returns error and does not create new session
+      Failure/Error: post host_venue_queue_sessions_path(venue), as: :json
+
+      NoMethodError:
+        undefined method `host_venue_queue_sessions_path' for #<RSpec::ExampleGroups::HostQueueSessionsController::POSTHostVenuesVenueIdQueueSessions::WhenVenueAlreadyHasActiveSession:0x000000011de331b8>
+      # ./spec/requests/host/queue_sessions_spec.rb:38:in `block (5 levels) in <top (required)>'
+      # ./spec/requests/host/queue_sessions_spec.rb:37:in `block (4 levels) in <top (required)>'
+
+  70) Host::QueueSessionsController POST /host/venues/:venue_id/queue_sessions when user is not the venue host redirects with not authorized message
+      Failure/Error: post host_venue_queue_sessions_path(other_venue), as: :json
+
+      NoMethodError:
+        undefined method `host_venue_queue_sessions_path' for #<RSpec::ExampleGroups::HostQueueSessionsController::POSTHostVenuesVenueIdQueueSessions::WhenUserIsNotTheVenueHost:0x000000011ed553d0>
+      # ./spec/requests/host/queue_sessions_spec.rb:49:in `block (4 levels) in <top (required)>'
+
+  71) Host::QueueSessionsController POST /host/venues/:venue_id/queue_sessions when user is not a host redirects with permission denied
+      Failure/Error: post host_venue_queue_sessions_path(venue), as: :json
+
+      NoMethodError:
+        undefined method `host_venue_queue_sessions_path' for #<RSpec::ExampleGroups::HostQueueSessionsController::POSTHostVenuesVenueIdQueueSessions::WhenUserIsNotAHost:0x000000011f318768>
+      # ./spec/requests/host/queue_sessions_spec.rb:60:in `block (4 levels) in <top (required)>'
+
+  72) Host::QueueSessionsController authorization when not logged in redirects create to login
+      Failure/Error: post host_venue_queue_sessions_path(venue), as: :json
+
+      NoMethodError:
+        undefined method `host_venue_queue_sessions_path' for #<RSpec::ExampleGroups::HostQueueSessionsController::Authorization::WhenNotLoggedIn:0x000000010dffc9a0>
+      # ./spec/requests/host/queue_sessions_spec.rb:162:in `block (4 levels) in <top (required)>'
+
+  73) Host::QueueSessionsController authorization when regular user (not host) denies access to create
+      Failure/Error: post host_venue_queue_sessions_path(venue), as: :json
+
+      NoMethodError:
+        undefined method `host_venue_queue_sessions_path' for #<RSpec::ExampleGroups::HostQueueSessionsController::Authorization::WhenRegularUserNotHost:0x000000011ea9be00>
+      # ./spec/requests/host/queue_sessions_spec.rb:189:in `block (4 levels) in <top (required)>'
+
+  74) Host::VenuesController GET /host/venues/new displays new venue form
+      Failure/Error: expect(response.body).to include("New Venue")
+
+        expected "<!DOCTYPE html>\n<html lang=\"en\" class=\"min-h-screen dark\">\n<head>\n  <title>Queue</title>\n  <...enues\">Cancel</a>\n      </div>\n</form>  </div>\n</div>\n    </div>\n  </div>\n</body>\n</html>\n" to include "New Venue"
+        Diff:
+        @@ -1 +1,127 @@
+        -New Venue
+        +<!DOCTYPE html>
+        +<html lang="en" class="min-h-screen dark">
+        +<head>
+        +  <title>Queue</title>
+        +  <meta name="viewport" content="width=device-width, initial-scale=1" />
+        +  
+        +  
+        +
+        +  <!-- Fonts from HEAD -->
+        +  <link rel="preconnect" href="https://fonts.googleapis.com">
+        +  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        +  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+        +
+        +  <!-- Tailwind from dev branch -->
+        +  <script src="https://cdn.tailwindcss.com"></script>
+        +  <script>
+        +    tailwind.config = {
+        +      theme: {
+        +        extend: {
+        +          colors: {
+        +            primary: '#1db954',
+        +            'bg-elev': '#1a1a1a',
+        +          }
+        +        }
+        +      }
+        +    }
+        +  </script>
+        +
+        +  
+        +
+        +  <!-- Tailwind base variables from dev -->
+        +  <style type="text/tailwindcss">
+        +    @layer base {
+        +      :root {
+        +        --bg: #f8fafc;
+        +        --bg-elev: #ffffff;
+        +        --fg: #0a0a0b;
+        +        --primary: #1db954;
+        +        --muted: #63666a;
+        +        --error: #b91c1c;
+        +        --border: #ececef;
+        +        --accent: #111827;
+        +      }
+        +      
+        +      .dark {
+        +        --bg: #0a0a0b;
+        +        --bg-elev: #1a1a1a;
+        +        --fg: #f8fafc;
+        +        --primary: #1ed760;
+        +        --muted: #9ca3af;
+        +        --error: #ef4444;
+        +        --border: #2d2d2d;
+        +        --accent: #1db954;
+        +      }
+        +      
+        +      body {
+        +        @apply bg-[color:var(--bg)] text-[color:var(--fg)];
+        +      }
+        +    }
+        +  </style>
+        +
+        +</head>
+        +<body class="min-h-screen antialiased">
+        +  <header class="sticky top-0 backdrop-blur-sm bg-[color:var(--bg-elev)]/90 border-b border-[color:var(--border)] z-10">
+        +    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        +      <div class="flex items-center justify-between h-16">
+        +        <div class="flex items-center gap-x-8">
+        +          <div class="text-lg font-bold">Queue</div>
+        +
+        +            <nav class="hidden md:flex items-center gap-x-6">
+        +              <a class="text-sm font-medium hover:text-[color:var(--primary)] transition-colors" href="/">Main</a>
+        +              <a class="text-sm font-medium hover:text-[color:var(--primary)] transition-colors" href="/scan">Scan</a>
+        +              <a class="text-sm font-medium hover:text-[color:var(--primary)] transition-colors" href="/queue">Queue</a>
+        +              <a class="text-sm font-medium hover:text-[color:var(--primary)] transition-colors" href="/search">Search</a>
+        +              <a class="text-sm font-medium hover:text-[color:var(--primary)] transition-colors" href="/profile">Profile</a>
+        +                <a class="text-sm font-medium hover:text-[color:var(--primary)] transition-colors" href="/host/venues">Venue</a>
+        +            </nav>
+        +        </div>
+        +
+        +          <div class="flex items-center gap-x-3">
+        +            <div class="px-3 py-1 rounded-lg bg-[color:var(--primary)]/10 border border-[color:var(--primary)]/30">
+        +              <span class="text-sm font-medium text-[color:var(--primary)]">$100.00</span>
+        +            </div>
+        +            <span id="current-user" class="text-sm text-[color:var(--muted)]">Host</span>
+        +            <form class="inline" method="post" action="/logout"><input type="hidden" name="_method" value="delete" autocomplete="off" /><button class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium bg-white/5 border border-white/15 hover:bg-white/10 transition-all" type="submit">Logout</button></form>
+        +          </div>
+        +      </div>
+        +    </div>
+        +  </header>
+        +
+        +  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        +
+        +    <div class="my-8">
+        +      <div class="max-w-4xl mx-auto">
+        +  <div class="rounded-2xl border border-white/10 bg-[color:var(--bg-elev)] shadow-lg p-8">
+        +    <div class="text-center mb-8">
+        +      <h1 class="text-3xl font-bold mb-3">Create Your Venue</h1>
+        +      <p class="text-[color:var(--muted)] text-lg">Add your venue to Queue and start hosting.</p>
+        +    </div>
+        +
+        +    <form class="space-y-4" action="/host/venues" accept-charset="UTF-8" method="post">
+        +
+        +      <div>
+        +        <label class="text-lg font-semibold" for="venue_name">Venue Name *</label>
+        +        <input placeholder="e.g., The Blue Note" class="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 focus:border-transparent placeholder:text-[color:var(--muted)]" type="text" name="venue[name]" id="venue_name" />
+        +      </div>
+        +
+        +      <div>
+        +        <label class="text-lg font-semibold" for="venue_location">Location (Optional)</label>
+        +        <input placeholder="e.g., Brooklyn, NY" class="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 focus:border-transparent placeholder:text-[color:var(--muted)]" type="text" name="venue[location]" id="venue_location" />
+        +      </div>
+        +
+        +      <div>
+        +        <label class="text-lg font-semibold" for="venue_capacity">Capacity (Optional)</label>
+        +        <input placeholder="e.g., 200" class="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 focus:border-transparent placeholder:text-[color:var(--muted)]" type="number" name="venue[capacity]" id="venue_capacity" />
+        +      </div>
+        +
+        +      <div class="flex gap-4 pt-4">
+        +        <input type="submit" name="commit" value="Create Venue" class="w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-medium bg-[color:var(--primary)] text-white hover:opacity-90 transition-all focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 focus:ring-offset-2" data-disable-with="Create Venue" />
+        +        <a class="w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 focus:ring-offset-2" href="/host/venues">Cancel</a>
+        +      </div>
+        +</form>  </div>
+        +</div>
+        +    </div>
+        +  </div>
+        +</body>
+        +</html>
+      # ./spec/requests/host/venues_spec.rb:31:in `block (3 levels) in <top (required)>'
+
+  75) Host::VenuesController GET /host/venues/new requires host role
+      Failure/Error: expect(response).to redirect_to(mainpage_path)
+        Expected response to be a <3XX: redirect>, but was a <200: OK>
+      # ./spec/requests/host/venues_spec.rb:37:in `block (3 levels) in <top (required)>'
+
+  76) Host::VenuesController PATCH /host/venues/:id for venue owned by another host redirects with not authorized message
+      Failure/Error: redirect_to host_venue_path(@venue), notice: "Venue updated successfully!"
+
+      AbstractController::DoubleRenderError:
+        Render and/or redirect were called multiple times in this action. Please note that you may only call render OR redirect, and at most once per action. Also note that neither redirect nor render terminate execution of the action, so if you want to exit an action after redirecting, you need to do something like "redirect_to(...); return".
+      # ./app/controllers/host/venues_controller.rb:47:in `update'
+      # ./spec/requests/host/venues_spec.rb:156:in `block (4 levels) in <top (required)>'
+
+  77) Host::VenuesController DELETE /host/venues/:id for venue owned by another host redirects with not authorized message
+      Failure/Error: redirect_to host_venues_path, notice: "Venue deleted successfully"
+
+      AbstractController::DoubleRenderError:
+        Render and/or redirect were called multiple times in this action. Please note that you may only call render OR redirect, and at most once per action. Also note that neither redirect nor render terminate execution of the action, so if you want to exit an action after redirecting, you need to do something like "redirect_to(...); return".
+      # ./app/controllers/host/venues_controller.rb:56:in `destroy'
+      # ./spec/requests/host/venues_spec.rb:184:in `block (5 levels) in <top (required)>'
+      # ./spec/requests/host/venues_spec.rb:183:in `block (4 levels) in <top (required)>'
+
+  78) Host::VenuesController GET /host/venues/:id/dashboard displays dashboard with active session and queue items
+      Failure/Error: <h2 class="text-xl font-bold mb-4">📋 Up Next (<%= @upcoming_songs.count %>)</h2>
+
+      ActionView::Template::Error:
+        undefined method `count' for nil
+      # ./app/views/host/venues/dashboard.html.erb:90:in `_app_views_host_venues_dashboard_html_erb___4418086099530045157_53380'
+      # ./spec/requests/host/venues_spec.rb:199:in `block (3 levels) in <top (required)>'
+      # ------------------
+      # --- Caused by: ---
+      # NoMethodError:
+      #   undefined method `count' for nil
+      #   ./app/views/host/venues/dashboard.html.erb:90:in `_app_views_host_venues_dashboard_html_erb___4418086099530045157_53380'
+
+  79) Host::VenuesController POST /host/venues/:id/create_session when active session already exists redirects with alert
+      Failure/Error:
+        expect {
+          post create_session_host_venue_path(venue1)
+        }.not_to change(QueueSession, :count)
+
+        expected `QueueSession.count` not to have changed, but did change from 1 to 2
+      # ./spec/requests/host/venues_spec.rb:227:in `block (4 levels) in <top (required)>'
+
+  80) Host::VenuesController POST /host/venues/:id/pause_session pauses the active session
+      Failure/Error: expect(response).to redirect_to(host_venue_path(venue1))
+        Expected response to be a <3XX: redirect>, but was a <404: Not Found>
+      # ./spec/requests/host/venues_spec.rb:254:in `block (3 levels) in <top (required)>'
+
+  81) Host::VenuesController POST /host/venues/:id/resume_session resumes the paused session
+      Failure/Error: expect(response).to redirect_to(host_venue_path(venue1))
+        Expected response to be a <3XX: redirect>, but was a <404: Not Found>
+      # ./spec/requests/host/venues_spec.rb:268:in `block (3 levels) in <top (required)>'
+
+  82) Host::VenuesController POST /host/venues/:id/end_session ends the active session
+      Failure/Error: expect(response).to redirect_to(host_venue_path(venue1))
+        Expected response to be a <3XX: redirect>, but was a <404: Not Found>
+      # ./spec/requests/host/venues_spec.rb:282:in `block (3 levels) in <top (required)>'
+
+  83) Host::VenuesController POST /host/venues/:id/regenerate_code regenerates the join code for active session
+      Failure/Error: expect(response).to redirect_to(host_venue_path(venue1))
+        Expected response to be a <3XX: redirect>, but was a <404: Not Found>
+      # ./spec/requests/host/venues_spec.rb:298:in `block (3 levels) in <top (required)>'
+
+  84) Host::VenuesController POST /host/venues/:id/regenerate_code when no active session redirects with alert
+      Failure/Error: expect(response).to redirect_to(host_venue_path(venue1))
+        Expected response to be a <3XX: redirect>, but was a <404: Not Found>
+      # ./spec/requests/host/venues_spec.rb:310:in `block (4 levels) in <top (required)>'
+
+  85) Host::VenuesController authorization when regular user (not host) denies access to create
+      Failure/Error: expect(response).to redirect_to(mainpage_path)
+
+        Expected response to be a redirect to <http://www.example.com/mainpage> but was a redirect to <http://www.example.com/host/venues/4>.
+        Expected "http://www.example.com/mainpage" to be === "http://www.example.com/host/venues/4".
+      # ./spec/requests/host/venues_spec.rb:350:in `block (4 levels) in <top (required)>'
+
+  86) HostVenuesController GET /host_venues/:id displays venue details and sessions
+      Failure/Error: expect(assigns(:queue_sessions)).to include(queue_session)
+        expected nil to include #<QueueSession id: 1, venue_id: 1, is_active: true, started_at: "2025-12-01 23:50:11.611280000 +0000"...oin_code: "123456", status: "active", code_expires_at: nil, access_code: nil, last_activity_at: nil>, but it does not respond to `include?`
+      # ./spec/requests/host_venues_spec.rb:77:in `block (3 levels) in <top (required)>'
+
+  87) HostVenuesController DELETE /host_venues/:id destroys the venue and redirects
+      Failure/Error: expect(flash[:notice]).to eq("Venue deleted successfully!")
+
+        expected: "Venue deleted successfully!"
+             got: "Venue deleted successfully"
+
+        (compared using ==)
+      # ./spec/requests/host_venues_spec.rb:128:in `block (3 levels) in <top (required)>'
+
+  88) HostVenuesController POST /host_venues/:venue_id/create_session when no active session exists creates a new session with join code
+      Failure/Error: post host_venue_create_session_path(venue)
+
+      NoMethodError:
+        undefined method `host_venue_create_session_path' for #<RSpec::ExampleGroups::HostVenuesController_3::POSTHostVenuesVenueIdCreateSession::WhenNoActiveSessionExists:0x000000011ed50ba0>
+      # ./spec/requests/host_venues_spec.rb:136:in `block (5 levels) in <top (required)>'
+      # ./spec/requests/host_venues_spec.rb:135:in `block (4 levels) in <top (required)>'
+
+  89) HostVenuesController POST /host_venues/:venue_id/create_session when active session already exists redirects with alert
+      Failure/Error: post host_venue_create_session_path(venue)
+
+      NoMethodError:
+        undefined method `host_venue_create_session_path' for #<RSpec::ExampleGroups::HostVenuesController_3::POSTHostVenuesVenueIdCreateSession::WhenActiveSessionAlreadyExists:0x000000011ebf9bf8>
+      # ./spec/requests/host_venues_spec.rb:154:in `block (5 levels) in <top (required)>'
+      # ./spec/requests/host_venues_spec.rb:153:in `block (4 levels) in <top (required)>'
+
+  90) HostVenuesController POST /host_venues/:venue_id/pause_session pauses the session
+      Failure/Error: expect(active_session.status).to eq("paused")
+
+        expected: "paused"
+             got: "active"
+
+        (compared using ==)
+      # ./spec/requests/host_venues_spec.rb:174:in `block (3 levels) in <top (required)>'
+
+  91) HostVenuesController POST /host_venues/:venue_id/end_session ends the session
+      Failure/Error: expect(active_session.status).to eq("ended")
+
+        expected: "ended"
+             got: "active"
+
+        (compared using ==)
+      # ./spec/requests/host_venues_spec.rb:191:in `block (3 levels) in <top (required)>'
+
+  92) HostVenuesController POST /host_venues/:venue_id/regenerate_code regenerates the join code
+      Failure/Error: expect(active_session.join_code).not_to eq(old_code)
+
+        expected: value != "123456"
+             got: "123456"
+
+        (compared using ==)
+      # ./spec/requests/host_venues_spec.rb:210:in `block (3 levels) in <top (required)>'
+
+  93) HostVenuesController authorization when regular user (not host) denies access to create
+      Failure/Error: expect(response).to redirect_to(mainpage_path)
+
+        Expected response to be a redirect to <http://www.example.com/mainpage> but was a redirect to <http://www.example.com/host/venues/2>.
+        Expected "http://www.example.com/mainpage" to be === "http://www.example.com/host/venues/2".
+      # ./spec/requests/host_venues_spec.rb:237:in `block (4 levels) in <top (required)>'
+
+  94) Main GET /mainpage lists a live session with now playing track
+      Failure/Error: venue = attrs.key?(:venue) ? attrs[:venue] : Venue.create!(name: "Test Venue")
+
+      ActiveRecord::RecordInvalid:
+        Validation failed: Host user can't be blank
+      # ./spec/requests/main_spec.rb:24:in `build_queue_session!'
+      # ./spec/requests/main_spec.rb:60:in `block (3 levels) in <top (required)>'
+
+  95) QueueItem orders by base_priority asc, then created_at asc (for display)
+      Failure/Error: expect(QueueItem.by_position).to eq([paid_item, high_vote, low_vote])
+
+        expected: [#<QueueItem id: 1, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_coun...ition_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]
+             got: #<ActiveRecord::Relation [#<QueueItem id: 2, song_id: nil, queue_session_id: 1, user_id: nil, base_pr...tion_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]>
+
+        (compared using ==)
+
+        Diff:
+        @@ -1,3 +1,75 @@
+        -[#<QueueItem id: 1, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 1, status: "pending", created_at: "2025-12-01 23:47:12.085082000 +0000", updated_at: "2025-12-01 23:50:12.085464000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 1, title: "Paid", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>,
+        - #<QueueItem id: 2, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 2, status: "pending", created_at: "2025-12-01 23:48:12.086484000 +0000", updated_at: "2025-12-01 23:50:12.086757000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 3, title: "High Vote", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>,
+        - #<QueueItem id: 3, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 2, status: "pending", created_at: "2025-12-01 23:49:12.087446000 +0000", updated_at: "2025-12-01 23:50:12.087718000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 1, title: "Low Vote", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]
+        +[#<QueueItem:0x000000011f6de898
+        +  id: 2,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 2,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:48:12.086484000 +0000",
+        +  updated_at: "2025-12-01 23:50:12.086757000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 3,
+        +  title: "High Vote",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>,
+        + #<QueueItem:0x000000011f6de758
+        +  id: 1,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 1,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:47:12.085082000 +0000",
+        +  updated_at: "2025-12-01 23:50:12.085464000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 1,
+        +  title: "Paid",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>,
+        + #<QueueItem:0x000000011f6de618
+        +  id: 3,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 2,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:49:12.087446000 +0000",
+        +  updated_at: "2025-12-01 23:50:12.087718000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 1,
+        +  title: "Low Vote",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>]
+      # ./spec/requests/queue_item_spec.rb:18:in `block (2 levels) in <top (required)>'
+
+  96) QueueItem orders by base_priority asc, then vote_score desc, then created_at asc (for playback)
+      Failure/Error: expect(QueueItem.by_votes).to eq([paid_item, high_vote, low_vote])
+
+        expected: [#<QueueItem id: 1, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_coun...ition_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]
+             got: #<ActiveRecord::Relation [#<QueueItem id: 2, song_id: nil, queue_session_id: 1, user_id: nil, base_pr...tion_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]>
+
+        (compared using ==)
+
+        Diff:
+        @@ -1,3 +1,75 @@
+        -[#<QueueItem id: 1, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 1, status: "pending", created_at: "2025-12-01 23:47:12.095406000 +0000", updated_at: "2025-12-01 23:50:12.095814000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 1, title: "Paid", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>,
+        - #<QueueItem id: 2, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 2, status: "pending", created_at: "2025-12-01 23:48:12.096301000 +0000", updated_at: "2025-12-01 23:50:12.096455000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 3, title: "High Vote", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>,
+        - #<QueueItem id: 3, song_id: nil, queue_session_id: 1, user_id: nil, base_price_cents: 100, vote_count: 0, base_priority: 2, status: "pending", created_at: "2025-12-01 23:49:12.097016000 +0000", updated_at: "2025-12-01 23:50:12.097162000 +0000", played_at: nil, is_currently_playing: false, cover_url: nil, duration_ms: nil, user_display_name: nil, vote_score: 1, title: "Low Vote", artist: "A", spotify_id: nil, preview_url: nil, position_paid_cents: nil, position_guaranteed: nil, refund_amount_cents: 0, inserted_at_position: nil>]
+        +[#<QueueItem:0x000000011f6d30d8
+        +  id: 2,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 2,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:48:12.096301000 +0000",
+        +  updated_at: "2025-12-01 23:50:12.096455000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 3,
+        +  title: "High Vote",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>,
+        + #<QueueItem:0x000000011f6d2f98
+        +  id: 1,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 1,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:47:12.095406000 +0000",
+        +  updated_at: "2025-12-01 23:50:12.095814000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 1,
+        +  title: "Paid",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>,
+        + #<QueueItem:0x000000011f6d2e58
+        +  id: 3,
+        +  song_id: nil,
+        +  queue_session_id: 1,
+        +  user_id: nil,
+        +  base_price_cents: 100,
+        +  vote_count: 0,
+        +  base_priority: 2,
+        +  status: "pending",
+        +  created_at: "2025-12-01 23:49:12.097016000 +0000",
+        +  updated_at: "2025-12-01 23:50:12.097162000 +0000",
+        +  played_at: nil,
+        +  is_currently_playing: false,
+        +  cover_url: nil,
+        +  duration_ms: nil,
+        +  user_display_name: nil,
+        +  vote_score: 1,
+        +  title: "Low Vote",
+        +  artist: "A",
+        +  spotify_id: nil,
+        +  preview_url: nil,
+        +  position_paid_cents: nil,
+        +  position_guaranteed: nil,
+        +  refund_amount_cents: 0,
+        +  inserted_at_position: nil>]
+      # ./spec/requests/queue_item_spec.rb:26:in `block (2 levels) in <top (required)>'
+
+  97) QueueItemsController POST /queue_items rejects creation when user has insufficient balance
+      Failure/Error: expect(response).to have_http_status(:payment_required)
+        expected the response to have status code :payment_required (402) but it was :no_content (204)
+      # ./spec/requests/queue_items_controller_spec.rb:65:in `block (3 levels) in <top (required)>'
+
+  98) QueueItemsController POST /queue_items (HTML format) handles insufficient balance error (HTML)
+      Failure/Error: expect(response).to redirect_to(search_path)
+
+        Expected response to be a <3XX: redirect>, but was a <204: No Content>
+        Response body: 
+      # ./spec/requests/queue_items_controller_spec.rb:230:in `block (3 levels) in <top (required)>'
+
+  99) QueuesController GET /queue/state returns the current queue state as JSON
+      Failure/Error: expect(response).to have_http_status(:ok)
+        expected the response to have status code :ok (200) but it was :not_found (404)
+      # ./spec/requests/queues_controller_spec.rb:313:in `block (3 levels) in <top (required)>'
+
+  100) Routing Flow Role-based redirects after login when host logs in redirects to host venues index
+       Failure/Error: expect(response).to redirect_to(host_venues_path)
+
+         Expected response to be a redirect to <http://www.example.com/host/venues> but was a redirect to <http://www.example.com/mainpage>.
+         Expected "http://www.example.com/host/venues" to be === "http://www.example.com/mainpage".
+       # ./spec/requests/routing_flow_spec.rb:48:in `block (4 levels) in <top (required)>'
+
+  101) Routing Flow Already logged in users visiting login page when admin visits login page redirects to admin dashboard
+       Failure/Error: expect(response).to redirect_to(admin_dashboard_path)
+
+         Expected response to be a redirect to <http://www.example.com/admin/dashboard> but was a redirect to <http://www.example.com/mainpage>.
+         Expected "http://www.example.com/admin/dashboard" to be === "http://www.example.com/mainpage".
+       # ./spec/requests/routing_flow_spec.rb:114:in `block (4 levels) in <top (required)>'
+
+  102) Routing Flow Already logged in users visiting login page when host visits login page redirects to host venues
+       Failure/Error: expect(response).to redirect_to(host_venues_path)
+
+         Expected response to be a redirect to <http://www.example.com/host/venues> but was a redirect to <http://www.example.com/mainpage>.
+         Expected "http://www.example.com/host/venues" to be === "http://www.example.com/mainpage".
+       # ./spec/requests/routing_flow_spec.rb:139:in `block (4 levels) in <top (required)>'
+
+  103) Routing Flow Regular user blocked from host areas cannot access new venue form
+       Failure/Error: expect(response).to redirect_to(mainpage_path)
+         Expected response to be a <3XX: redirect>, but was a <200: OK>
+       # ./spec/requests/routing_flow_spec.rb:240:in `block (3 levels) in <top (required)>'
+
+  104) Routing Flow Regular user blocked from host areas cannot create a venue
+       Failure/Error:
+         expect {
+           post host_venues_path, params: {
+             venue: {
+               name: "Test Venue",
+               location: "Test Location",
+               capacity: 100
+             }
+           }
+         }.not_to change(Venue, :count)
+
+         expected `Venue.count` not to have changed, but did change from 0 to 1
+       # ./spec/requests/routing_flow_spec.rb:245:in `block (3 levels) in <top (required)>'
+
+  105) SongsController returns top 5 results matching title or artist (case-insensitive)
+       Failure/Error: expect(titles).to include("Blue Bird")
+         expected [] to include "Blue Bird"
+       # ./spec/requests/songs_controller_spec.rb:17:in `block (2 levels) in <top (required)>'
+
+  106) Users POST /users creates a new user with valid params
+       Failure/Error:
+         expect {
+           post users_path, params: valid_params
+         }.to change(User, :count).by(1)
+
+         expected `User.count` to have changed by 1, but was changed by 0
+       # ./spec/requests/users_spec.rb:30:in `block (3 levels) in <top (required)>'
+
+  107) Users POST /users fails with invalid params
+       Failure/Error: expect(response).to have_http_status(:unprocessable_entity)
+         expected the response to have status code :unprocessable_entity (422) but it was :ok (200)
+       # ./spec/requests/users_spec.rb:46:in `block (3 levels) in <top (required)>'
+
+  108) Users POST /users fails with short password
+       Failure/Error: expect(response).to have_http_status(:unprocessable_content)
+         expected the response to have status code :unprocessable_content (422) but it was :ok (200)
+       # ./spec/requests/users_spec.rb:58:in `block (3 levels) in <top (required)>'
+
+  109) Users GET /users/:id/summary returns user summary as JSON
+       Failure/Error: expect(response).to have_http_status(:success)
+         expected the response to have a success status code (2xx) but it was 404
+       # ./spec/requests/users_spec.rb:72:in `block (3 levels) in <top (required)>'
+
+  110) VenuesController shows a venue
+       Failure/Error: expect(response).to have_http_status(:ok)
+         expected the response to have status code :ok (200) but it was :not_found (404)
+       # ./spec/requests/venues_controller_spec.rb:14:in `block (2 levels) in <top (required)>'
+
+  111) DynamicPricingService.calculate_position_price when pricing is disabled returns 0
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:9:in `block (4 levels) in <top (required)>'
+
+  112) DynamicPricingService.calculate_position_price with single user (no competition) returns position-adjusted price (position 1 = 3x base)
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:18:in `block (4 levels) in <top (required)>'
+
+  113) DynamicPricingService.calculate_position_price with moderate demand (5 users, 10 songs) calculates price with demand multiplier
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:33:in `block (6 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:31:in `block (5 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:29:in `block (4 levels) in <top (required)>'
+
+  114) DynamicPricingService.calculate_position_price with moderate demand (5 users, 10 songs) charges more for earlier positions
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:33:in `block (6 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:31:in `block (5 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:29:in `block (4 levels) in <top (required)>'
+
+  115) DynamicPricingService.calculate_position_price with high demand (25 users, 50 songs) triggers surge pricing
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:61:in `block (6 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:59:in `block (5 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:57:in `block (4 levels) in <top (required)>'
+
+  116) DynamicPricingService.calculate_position_price with high demand (25 users, 50 songs) respects maximum price cap
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:61:in `block (6 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:59:in `block (5 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:57:in `block (4 levels) in <top (required)>'
+
+  117) DynamicPricingService.calculate_position_price during peak hours applies peak hour multiplier
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:83:in `block (4 levels) in <top (required)>'
+
+  118) DynamicPricingService.get_active_user_count counts unique users in last 30 minutes
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:108:in `block (3 levels) in <top (required)>'
+
+  119) DynamicPricingService.get_queue_velocity calculates songs per minute over last 10 minutes
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:123:in `block (4 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:122:in `block (3 levels) in <top (required)>'
+
+  120) DynamicPricingService.get_queue_velocity ignores songs older than 10 minutes
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:130:in `block (3 levels) in <top (required)>'
+
+  121) DynamicPricingService.time_of_day_factor with normal peak hours (19-23) returns 1.0 during off-peak hours
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:140:in `block (4 levels) in <top (required)>'
+
+  122) DynamicPricingService.time_of_day_factor with normal peak hours (19-23) returns peak multiplier during peak hours
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:140:in `block (4 levels) in <top (required)>'
+
+  123) DynamicPricingService.time_of_day_factor with overnight peak hours (22-2) handles midnight wraparound correctly
+       Failure/Error: let(:venue) { create(:venue) }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/dynamic_pricing_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/dynamic_pricing_service_spec.rb:160:in `block (4 levels) in <top (required)>'
+
+  124) JoinCodeGenerator.generate does not generate duplicate codes for existing sessions
+       Failure/Error: venue = Venue.create!(name: "Test Venue")
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/join_code_generator_spec.rb:26:in `block (3 levels) in <top (required)>'
+
+  125) JoinCodeGenerator.generate checks both join_code and access_code columns if they exist
+       Failure/Error: venue = Venue.create!(name: "Test Venue")
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/join_code_generator_spec.rb:46:in `block (3 levels) in <top (required)>'
+
+  126) JoinCodeGenerator.valid_format? with valid codes accepts numeric input and converts to string
+       Failure/Error: expect(JoinCodeGenerator.valid_format?(000001)).to be true
+
+         expected true
+              got false
+       # ./spec/services/join_code_generator_spec.rb:107:in `block (4 levels) in <top (required)>'
+
+  127) JoinCodeGenerator.find_active_session with valid code finds active session by join_code
+       Failure/Error: let!(:venue1) { Venue.create!(name: "Venue 1") }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/join_code_generator_spec.rb:137:in `block (3 levels) in <top (required)>'
+
+  128) JoinCodeGenerator.find_active_session with valid code finds active session by access_code if column exists
+       Failure/Error: let!(:venue1) { Venue.create!(name: "Venue 1") }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/join_code_generator_spec.rb:137:in `block (3 levels) in <top (required)>'
+
+  129) JoinCodeGenerator.find_active_session with valid code returns nil for non-active sessions
+       Failure/Error: let!(:venue1) { Venue.create!(name: "Venue 1") }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/join_code_generator_spec.rb:137:in `block (3 levels) in <top (required)>'
+
+  130) JoinCodeGenerator.find_active_session with valid code returns nil for non-existent code
+       Failure/Error: let!(:venue1) { Venue.create!(name: "Venue 1") }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/join_code_generator_spec.rb:137:in `block (3 levels) in <top (required)>'
+
+  131) JoinCodeGenerator.find_active_session with invalid code format returns nil without querying database
+       Failure/Error: let!(:venue1) { Venue.create!(name: "Venue 1") }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/join_code_generator_spec.rb:137:in `block (3 levels) in <top (required)>'
+
+  132) JoinCodeGenerator private methods .code_taken? checks if code is taken in join_code column
+       Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/join_code_generator_spec.rb:207:in `block (4 levels) in <top (required)>'
+
+  133) JoinCodeGenerator private methods .code_taken? checks if code is taken in access_code column if it exists
+       Failure/Error: let!(:venue) { Venue.create!(name: "Test Venue") }
+
+       ActiveRecord::RecordInvalid:
+         Validation failed: Host user can't be blank
+       # ./spec/services/join_code_generator_spec.rb:207:in `block (4 levels) in <top (required)>'
+
+  134) QueuePositionService.insert_at_position updates queue session last_activity_at
+       Failure/Error: let(:venue) { create(:venue, :with_pricing_enabled) }
+
+       KeyError:
+         Trait not registered: "with_pricing_enabled"
+       # ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:46:in `block (3 levels) in <top (required)>'
+       # ------------------
+       # --- Caused by: ---
+       # KeyError:
+       #   key not found: "with_pricing_enabled"
+       #   ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  135) QueuePositionService.insert_at_position with empty queue inserts item at position 1
+       Failure/Error: let(:venue) { create(:venue, :with_pricing_enabled) }
+
+       KeyError:
+         Trait not registered: "with_pricing_enabled"
+       # ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:13:in `block (4 levels) in <top (required)>'
+       # ------------------
+       # --- Caused by: ---
+       # KeyError:
+       #   key not found: "with_pricing_enabled"
+       #   ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  136) QueuePositionService.insert_at_position with existing items inserts new item and bumps others down
+       Failure/Error: let(:venue) { create(:venue, :with_pricing_enabled) }
+
+       KeyError:
+         Trait not registered: "with_pricing_enabled"
+       # ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:23:in `block (4 levels) in <top (required)>'
+       # ------------------
+       # --- Caused by: ---
+       # KeyError:
+       #   key not found: "with_pricing_enabled"
+       #   ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  137) QueuePositionService.insert_at_position with existing items processes refunds for bumped items
+       Failure/Error: let(:venue) { create(:venue, :with_pricing_enabled) }
+
+       KeyError:
+         Trait not registered: "with_pricing_enabled"
+       # ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:23:in `block (4 levels) in <top (required)>'
+       # ------------------
+       # --- Caused by: ---
+       # KeyError:
+       #   key not found: "with_pricing_enabled"
+       #   ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  138) QueuePositionService.calculate_refund returns 0 if position improves
+       Failure/Error: let(:venue) { create(:venue, :with_pricing_enabled) }
+
+       KeyError:
+         Trait not registered: "with_pricing_enabled"
+       # ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:57:in `block (4 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:57:in `block (3 levels) in <top (required)>'
+       # ------------------
+       # --- Caused by: ---
+       # KeyError:
+       #   key not found: "with_pricing_enabled"
+       #   ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  139) QueuePositionService.calculate_refund calculates refund as difference between paid and new position price
+       Failure/Error: let(:venue) { create(:venue, :with_pricing_enabled) }
+
+       KeyError:
+         Trait not registered: "with_pricing_enabled"
+       # ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:57:in `block (4 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:57:in `block (3 levels) in <top (required)>'
+       # ------------------
+       # --- Caused by: ---
+       # KeyError:
+       #   key not found: "with_pricing_enabled"
+       #   ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  140) QueuePositionService.calculate_refund never refunds more than paid amount
+       Failure/Error: let(:venue) { create(:venue, :with_pricing_enabled) }
+
+       KeyError:
+         Trait not registered: "with_pricing_enabled"
+       # ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:57:in `block (4 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:57:in `block (3 levels) in <top (required)>'
+       # ------------------
+       # --- Caused by: ---
+       # KeyError:
+       #   key not found: "with_pricing_enabled"
+       #   ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  141) QueuePositionService.process_bump_refund adds refund amount to item
+       Failure/Error: let(:venue) { create(:venue, :with_pricing_enabled) }
+
+       KeyError:
+         Trait not registered: "with_pricing_enabled"
+       # ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:95:in `block (3 levels) in <top (required)>'
+       # ------------------
+       # --- Caused by: ---
+       # KeyError:
+       #   key not found: "with_pricing_enabled"
+       #   ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  142) QueuePositionService.process_bump_refund accumulates multiple refunds
+       Failure/Error: let(:venue) { create(:venue, :with_pricing_enabled) }
+
+       KeyError:
+         Trait not registered: "with_pricing_enabled"
+       # ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:95:in `block (3 levels) in <top (required)>'
+       # ------------------
+       # --- Caused by: ---
+       # KeyError:
+       #   key not found: "with_pricing_enabled"
+       #   ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  143) QueuePositionService.remove_item marks item as cancelled
+       Failure/Error: let(:venue) { create(:venue, :with_pricing_enabled) }
+
+       KeyError:
+         Trait not registered: "with_pricing_enabled"
+       # ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:118:in `block (3 levels) in <top (required)>'
+       # ------------------
+       # --- Caused by: ---
+       # KeyError:
+       #   key not found: "with_pricing_enabled"
+       #   ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+  144) QueuePositionService.remove_item reorders remaining items
+       Failure/Error: let(:venue) { create(:venue, :with_pricing_enabled) }
+
+       KeyError:
+         Trait not registered: "with_pricing_enabled"
+       # ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:5:in `block (2 levels) in <top (required)>'
+       # ./spec/services/queue_position_service_spec.rb:118:in `block (3 levels) in <top (required)>'
+       # ------------------
+       # --- Caused by: ---
+       # KeyError:
+       #   key not found: "with_pricing_enabled"
+       #   ./spec/services/queue_position_service_spec.rb:4:in `block (2 levels) in <top (required)>'
+
+Finished in 3.78 seconds (files took 1.15 seconds to load)
+420 examples, 144 failures
+
+Failed examples:
+
+rspec ./spec/controllers/queues_controller_spec.rb:12 # QueuesController has a state action defined
+rspec ./spec/features/dynamic_pricing_spec.rb:20 # Dynamic Pricing User sees dynamic prices on search page
+rspec ./spec/features/dynamic_pricing_spec.rb:33 # Dynamic Pricing Admin can configure venue pricing settings
+rspec ./spec/features/dynamic_pricing_spec.rb:56 # Dynamic Pricing Prices increase with demand
+rspec ./spec/features/dynamic_pricing_spec.rb:74 # Dynamic Pricing Position selection shows different prices
+rspec ./spec/features/dynamic_pricing_spec.rb:93 # Dynamic Pricing User gets refund when bumped down
+rspec ./spec/models/balance_transaction_spec.rb:11 # BalanceTransaction associations belongs to user
+rspec ./spec/models/balance_transaction_spec.rb:21 # BalanceTransaction associations belongs to queue_item (optional)
+rspec ./spec/models/balance_transaction_spec.rb:32 # BalanceTransaction associations can be created without queue_item
+rspec ./spec/models/balance_transaction_spec.rb:44 # BalanceTransaction validations requires amount_cents
+rspec ./spec/models/balance_transaction_spec.rb:54 # BalanceTransaction validations requires transaction_type
+rspec ./spec/models/balance_transaction_spec.rb:64 # BalanceTransaction validations requires balance_after_cents
+rspec ./spec/models/balance_transaction_spec.rb:74 # BalanceTransaction validations validates transaction_type is in allowed list
+rspec ./spec/models/balance_transaction_spec.rb:85 # BalanceTransaction validations accepts valid transaction types
+rspec ./spec/models/balance_transaction_spec.rb:97 # BalanceTransaction validations validates balance_after_cents is not negative
+rspec ./spec/models/balance_transaction_spec.rb:108 # BalanceTransaction validations allows balance_after_cents to be zero
+rspec ./spec/models/balance_transaction_spec.rb:161 # BalanceTransaction scopes .credits returns credit, refund, and initial transactions
+rspec ./spec/models/balance_transaction_spec.rb:168 # BalanceTransaction scopes .debits returns only debit transactions
+rspec ./spec/models/balance_transaction_spec.rb:175 # BalanceTransaction scopes .recent orders by created_at desc
+rspec ./spec/models/balance_transaction_spec.rb:187 # BalanceTransaction instance methods #credit? returns true for credit transactions
+rspec ./spec/models/balance_transaction_spec.rb:197 # BalanceTransaction instance methods #credit? returns true for refund transactions
+rspec ./spec/models/balance_transaction_spec.rb:207 # BalanceTransaction instance methods #credit? returns true for initial transactions
+rspec ./spec/models/balance_transaction_spec.rb:217 # BalanceTransaction instance methods #credit? returns false for debit transactions
+rspec ./spec/models/balance_transaction_spec.rb:229 # BalanceTransaction instance methods #debit? returns true for debit transactions
+rspec ./spec/models/balance_transaction_spec.rb:239 # BalanceTransaction instance methods #debit? returns false for credit transactions
+rspec ./spec/models/balance_transaction_spec.rb:249 # BalanceTransaction instance methods #debit? returns false for refund transactions
+rspec ./spec/models/balance_transaction_spec.rb:259 # BalanceTransaction instance methods #debit? returns false for initial transactions
+rspec ./spec/models/balance_transaction_spec.rb:271 # BalanceTransaction instance methods #amount_display formats positive amounts correctly
+rspec ./spec/models/balance_transaction_spec.rb:281 # BalanceTransaction instance methods #amount_display formats negative amounts as positive with dollar sign
+rspec ./spec/models/balance_transaction_spec.rb:291 # BalanceTransaction instance methods #amount_display formats zero amount
+rspec ./spec/models/balance_transaction_spec.rb:301 # BalanceTransaction instance methods #amount_display formats small amounts correctly
+rspec ./spec/models/balance_transaction_spec.rb:311 # BalanceTransaction instance methods #amount_display rounds to two decimal places
+rspec ./spec/models/balance_transaction_spec.rb:324 # BalanceTransaction edge cases handles very large amounts
+rspec ./spec/models/balance_transaction_spec.rb:335 # BalanceTransaction edge cases allows description to be nil
+rspec ./spec/models/balance_transaction_spec.rb:346 # BalanceTransaction edge cases allows description to be present
+rspec ./spec/models/queue_item_spec.rb:30 # QueueItem orders by base_priority asc, then created_at asc (for display)
+rspec ./spec/models/queue_item_spec.rb:38 # QueueItem orders by base_priority asc, then vote_score desc, then created_at asc (for playback)
+rspec ./spec/requests/admin/balance_transactions_spec.rb:49 # Admin::BalanceTransactionsController GET /admin/balance_transactions displays users and recent transactions
+rspec ./spec/requests/admin/balance_transactions_spec.rb:65 # Admin::BalanceTransactionsController GET /admin/balance_transactions orders users by created_at desc
+rspec ./spec/requests/admin/balance_transactions_spec.rb:71 # Admin::BalanceTransactionsController GET /admin/balance_transactions limits recent transactions to 50
+rspec ./spec/requests/admin/balance_transactions_spec.rb:87 # Admin::BalanceTransactionsController GET /admin/balance_transactions requires admin access
+rspec ./spec/requests/admin/balance_transactions_spec.rb:96 # Admin::BalanceTransactionsController GET /admin/balance_transactions/:id shows user's transaction history
+rspec ./spec/requests/admin/balance_transactions_spec.rb:109 # Admin::BalanceTransactionsController GET /admin/balance_transactions/:id orders transactions by created_at desc
+rspec ./spec/requests/admin/balance_transactions_spec.rb:118 # Admin::BalanceTransactionsController POST /admin/balance_transactions/:id/add_credit with valid amount adds credit to user's balance and redirects with notice
+rspec ./spec/requests/admin/balance_transactions_spec.rb:137 # Admin::BalanceTransactionsController POST /admin/balance_transactions/:id/add_credit with zero amount redirects with alert
+rspec ./spec/requests/admin/balance_transactions_spec.rb:150 # Admin::BalanceTransactionsController POST /admin/balance_transactions/:id/add_credit with negative amount redirects with alert
+rspec ./spec/requests/admin/balance_transactions_spec.rb:167 # Admin::BalanceTransactionsController authorization when not admin redirects index
+rspec ./spec/requests/admin/balance_transactions_spec.rb:173 # Admin::BalanceTransactionsController authorization when not admin redirects show
+rspec ./spec/requests/admin/balance_transactions_spec.rb:179 # Admin::BalanceTransactionsController authorization when not admin redirects add_credit
+rspec ./spec/requests/admin/balance_transactions_spec.rb:189 # Admin::BalanceTransactionsController authorization when not logged in redirects to login
+rspec ./spec/requests/admin/venues_spec.rb:37 # Admin::VenuesController GET /admin/venues/:id shows venue details and sessions
+rspec ./spec/requests/admin/venues_spec.rb:59 # Admin::VenuesController POST /admin/venues with valid params creates a new venue and redirects
+rspec ./spec/requests/admin_dashboard_spec.rb:14 # Admin::Dashboard shows counts for users, venues, active sessions, and songs
+rspec ./spec/requests/api/pricing_spec.rb:18 # Api::PricingController GET /api/pricing/current_prices with active queue session returns pricing for positions 1-10
+rspec ./spec/requests/api/pricing_spec.rb:46 # Api::PricingController GET /api/pricing/current_prices with active queue session uses current queue session when no queue_session_id provided
+rspec ./spec/requests/api/pricing_spec.rb:60 # Api::PricingController GET /api/pricing/current_prices without active queue session returns not found error
+rspec ./spec/requests/api/pricing_spec.rb:72 # Api::PricingController GET /api/pricing/position_price with valid position returns price for specific position
+rspec ./spec/requests/api/pricing_spec.rb:88 # Api::PricingController GET /api/pricing/position_price with valid position uses current queue session when no queue_session_id provided
+rspec ./spec/requests/api/pricing_spec.rb:98 # Api::PricingController GET /api/pricing/position_price with invalid position returns bad request for position 0
+rspec ./spec/requests/api/pricing_spec.rb:106 # Api::PricingController GET /api/pricing/position_price with invalid position returns bad request for negative position
+rspec ./spec/requests/api/pricing_spec.rb:114 # Api::PricingController GET /api/pricing/position_price with invalid position returns bad request when position not provided
+rspec ./spec/requests/api/pricing_spec.rb:128 # Api::PricingController GET /api/pricing/position_price without active queue session returns bad request error
+rspec ./spec/requests/api/pricing_spec.rb:140 # Api::PricingController GET /api/pricing/factors with active queue session returns pricing factors
+rspec ./spec/requests/api/pricing_spec.rb:151 # Api::PricingController GET /api/pricing/factors with active queue session uses current queue session when no queue_session_id provided
+rspec ./spec/requests/api/pricing_spec.rb:165 # Api::PricingController GET /api/pricing/factors without active queue session returns not found error
+rspec ./spec/requests/api/pricing_spec.rb:181 # Api::PricingController authentication when not authenticated allows API calls (skip_before_action :verify_authenticity_token)
+rspec ./spec/requests/api/pricing_spec.rb:211 # Api::PricingController when DynamicPricingService is not defined still returns pricing data
+rspec ./spec/requests/host/queue_sessions_spec.rb:16 # Host::QueueSessionsController POST /host/venues/:venue_id/queue_sessions when venue has no active session creates a new queue session and returns join code
+rspec ./spec/requests/host/queue_sessions_spec.rb:36 # Host::QueueSessionsController POST /host/venues/:venue_id/queue_sessions when venue already has active session returns error and does not create new session
+rspec ./spec/requests/host/queue_sessions_spec.rb:48 # Host::QueueSessionsController POST /host/venues/:venue_id/queue_sessions when user is not the venue host redirects with not authorized message
+rspec ./spec/requests/host/queue_sessions_spec.rb:59 # Host::QueueSessionsController POST /host/venues/:venue_id/queue_sessions when user is not a host redirects with permission denied
+rspec ./spec/requests/host/queue_sessions_spec.rb:161 # Host::QueueSessionsController authorization when not logged in redirects create to login
+rspec ./spec/requests/host/queue_sessions_spec.rb:188 # Host::QueueSessionsController authorization when regular user (not host) denies access to create
+rspec ./spec/requests/host/venues_spec.rb:27 # Host::VenuesController GET /host/venues/new displays new venue form
+rspec ./spec/requests/host/venues_spec.rb:34 # Host::VenuesController GET /host/venues/new requires host role
+rspec ./spec/requests/host/venues_spec.rb:155 # Host::VenuesController PATCH /host/venues/:id for venue owned by another host redirects with not authorized message
+rspec ./spec/requests/host/venues_spec.rb:182 # Host::VenuesController DELETE /host/venues/:id for venue owned by another host redirects with not authorized message
+rspec ./spec/requests/host/venues_spec.rb:198 # Host::VenuesController GET /host/venues/:id/dashboard displays dashboard with active session and queue items
+rspec ./spec/requests/host/venues_spec.rb:226 # Host::VenuesController POST /host/venues/:id/create_session when active session already exists redirects with alert
+rspec ./spec/requests/host/venues_spec.rb:251 # Host::VenuesController POST /host/venues/:id/pause_session pauses the active session
+rspec ./spec/requests/host/venues_spec.rb:265 # Host::VenuesController POST /host/venues/:id/resume_session resumes the paused session
+rspec ./spec/requests/host/venues_spec.rb:279 # Host::VenuesController POST /host/venues/:id/end_session ends the active session
+rspec ./spec/requests/host/venues_spec.rb:293 # Host::VenuesController POST /host/venues/:id/regenerate_code regenerates the join code for active session
+rspec ./spec/requests/host/venues_spec.rb:307 # Host::VenuesController POST /host/venues/:id/regenerate_code when no active session redirects with alert
+rspec ./spec/requests/host/venues_spec.rb:348 # Host::VenuesController authorization when regular user (not host) denies access to create
+rspec ./spec/requests/host_venues_spec.rb:72 # HostVenuesController GET /host_venues/:id displays venue details and sessions
+rspec ./spec/requests/host_venues_spec.rb:122 # HostVenuesController DELETE /host_venues/:id destroys the venue and redirects
+rspec ./spec/requests/host_venues_spec.rb:134 # HostVenuesController POST /host_venues/:venue_id/create_session when no active session exists creates a new session with join code
+rspec ./spec/requests/host_venues_spec.rb:152 # HostVenuesController POST /host_venues/:venue_id/create_session when active session already exists redirects with alert
+rspec ./spec/requests/host_venues_spec.rb:166 # HostVenuesController POST /host_venues/:venue_id/pause_session pauses the session
+rspec ./spec/requests/host_venues_spec.rb:183 # HostVenuesController POST /host_venues/:venue_id/end_session ends the session
+rspec ./spec/requests/host_venues_spec.rb:200 # HostVenuesController POST /host_venues/:venue_id/regenerate_code regenerates the join code
+rspec ./spec/requests/host_venues_spec.rb:235 # HostVenuesController authorization when regular user (not host) denies access to create
+rspec ./spec/requests/main_spec.rb:59 # Main GET /mainpage lists a live session with now playing track
+rspec ./spec/requests/queue_item_spec.rb:13 # QueueItem orders by base_priority asc, then created_at asc (for display)
+rspec ./spec/requests/queue_item_spec.rb:21 # QueueItem orders by base_priority asc, then vote_score desc, then created_at asc (for playback)
+rspec ./spec/requests/queue_items_controller_spec.rb:53 # QueueItemsController POST /queue_items rejects creation when user has insufficient balance
+rspec ./spec/requests/queue_items_controller_spec.rb:218 # QueueItemsController POST /queue_items (HTML format) handles insufficient balance error (HTML)
+rspec ./spec/requests/queues_controller_spec.rb:310 # QueuesController GET /queue/state returns the current queue state as JSON
+rspec ./spec/requests/routing_flow_spec.rb:41 # Routing Flow Role-based redirects after login when host logs in redirects to host venues index
+rspec ./spec/requests/routing_flow_spec.rb:112 # Routing Flow Already logged in users visiting login page when admin visits login page redirects to admin dashboard
+rspec ./spec/requests/routing_flow_spec.rb:137 # Routing Flow Already logged in users visiting login page when host visits login page redirects to host venues
+rspec ./spec/requests/routing_flow_spec.rb:238 # Routing Flow Regular user blocked from host areas cannot access new venue form
+rspec ./spec/requests/routing_flow_spec.rb:244 # Routing Flow Regular user blocked from host areas cannot create a venue
+rspec ./spec/requests/songs_controller_spec.rb:12 # SongsController returns top 5 results matching title or artist (case-insensitive)
+rspec ./spec/requests/users_spec.rb:29 # Users POST /users creates a new user with valid params
+rspec ./spec/requests/users_spec.rb:38 # Users POST /users fails with invalid params
+rspec ./spec/requests/users_spec.rb:49 # Users POST /users fails with short password
+rspec ./spec/requests/users_spec.rb:70 # Users GET /users/:id/summary returns user summary as JSON
+rspec ./spec/requests/venues_controller_spec.rb:10 # VenuesController shows a venue
+rspec ./spec/services/dynamic_pricing_service_spec.rb:11 # DynamicPricingService.calculate_position_price when pricing is disabled returns 0
+rspec ./spec/services/dynamic_pricing_service_spec.rb:21 # DynamicPricingService.calculate_position_price with single user (no competition) returns position-adjusted price (position 1 = 3x base)
+rspec ./spec/services/dynamic_pricing_service_spec.rb:41 # DynamicPricingService.calculate_position_price with moderate demand (5 users, 10 songs) calculates price with demand multiplier
+rspec ./spec/services/dynamic_pricing_service_spec.rb:48 # DynamicPricingService.calculate_position_price with moderate demand (5 users, 10 songs) charges more for earlier positions
+rspec ./spec/services/dynamic_pricing_service_spec.rb:69 # DynamicPricingService.calculate_position_price with high demand (25 users, 50 songs) triggers surge pricing
+rspec ./spec/services/dynamic_pricing_service_spec.rb:74 # DynamicPricingService.calculate_position_price with high demand (25 users, 50 songs) respects maximum price cap
+rspec ./spec/services/dynamic_pricing_service_spec.rb:90 # DynamicPricingService.calculate_position_price during peak hours applies peak hour multiplier
+rspec ./spec/services/dynamic_pricing_service_spec.rb:103 # DynamicPricingService.get_active_user_count counts unique users in last 30 minutes
+rspec ./spec/services/dynamic_pricing_service_spec.rb:120 # DynamicPricingService.get_queue_velocity calculates songs per minute over last 10 minutes
+rspec ./spec/services/dynamic_pricing_service_spec.rb:129 # DynamicPricingService.get_queue_velocity ignores songs older than 10 minutes
+rspec ./spec/services/dynamic_pricing_service_spec.rb:147 # DynamicPricingService.time_of_day_factor with normal peak hours (19-23) returns 1.0 during off-peak hours
+rspec ./spec/services/dynamic_pricing_service_spec.rb:152 # DynamicPricingService.time_of_day_factor with normal peak hours (19-23) returns peak multiplier during peak hours
+rspec ./spec/services/dynamic_pricing_service_spec.rb:167 # DynamicPricingService.time_of_day_factor with overnight peak hours (22-2) handles midnight wraparound correctly
+rspec ./spec/services/join_code_generator_spec.rb:24 # JoinCodeGenerator.generate does not generate duplicate codes for existing sessions
+rspec ./spec/services/join_code_generator_spec.rb:45 # JoinCodeGenerator.generate checks both join_code and access_code columns if they exist
+rspec ./spec/services/join_code_generator_spec.rb:105 # JoinCodeGenerator.valid_format? with valid codes accepts numeric input and converts to string
+rspec ./spec/services/join_code_generator_spec.rb:162 # JoinCodeGenerator.find_active_session with valid code finds active session by join_code
+rspec ./spec/services/join_code_generator_spec.rb:167 # JoinCodeGenerator.find_active_session with valid code finds active session by access_code if column exists
+rspec ./spec/services/join_code_generator_spec.rb:181 # JoinCodeGenerator.find_active_session with valid code returns nil for non-active sessions
+rspec ./spec/services/join_code_generator_spec.rb:186 # JoinCodeGenerator.find_active_session with valid code returns nil for non-existent code
+rspec ./spec/services/join_code_generator_spec.rb:192 # JoinCodeGenerator.find_active_session with invalid code format returns nil without querying database
+rspec ./spec/services/join_code_generator_spec.rb:209 # JoinCodeGenerator private methods .code_taken? checks if code is taken in join_code column
+rspec ./spec/services/join_code_generator_spec.rb:228 # JoinCodeGenerator private methods .code_taken? checks if code is taken in access_code column if it exists
+rspec ./spec/services/queue_position_service_spec.rb:45 # QueuePositionService.insert_at_position updates queue session last_activity_at
+rspec ./spec/services/queue_position_service_spec.rb:12 # QueuePositionService.insert_at_position with empty queue inserts item at position 1
+rspec ./spec/services/queue_position_service_spec.rb:26 # QueuePositionService.insert_at_position with existing items inserts new item and bumps others down
+rspec ./spec/services/queue_position_service_spec.rb:36 # QueuePositionService.insert_at_position with existing items processes refunds for bumped items
+rspec ./spec/services/queue_position_service_spec.rb:60 # QueuePositionService.calculate_refund returns 0 if position improves
+rspec ./spec/services/queue_position_service_spec.rb:65 # QueuePositionService.calculate_refund calculates refund as difference between paid and new position price
+rspec ./spec/services/queue_position_service_spec.rb:77 # QueuePositionService.calculate_refund never refunds more than paid amount
+rspec ./spec/services/queue_position_service_spec.rb:99 # QueuePositionService.process_bump_refund adds refund amount to item
+rspec ./spec/services/queue_position_service_spec.rb:107 # QueuePositionService.process_bump_refund accumulates multiple refunds
+rspec ./spec/services/queue_position_service_spec.rb:122 # QueuePositionService.remove_item marks item as cancelled
+rspec ./spec/services/queue_position_service_spec.rb:127 # QueuePositionService.remove_item reorders remaining items
+
