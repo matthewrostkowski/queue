@@ -875,6 +875,9 @@
         const card = button.closest('.song-card');
         const scoreEl = card.querySelector('.vote-score');
         
+        // Store original score in case of error
+        const originalScore = scoreEl.textContent;
+        
         console.log('[VOTING] Vote initiated for card:', card.dataset.queueItemId);
         
         try {
@@ -889,15 +892,35 @@
           const data = await response.json();
           console.log('[VOTING] Server response:', data);
           
-          // Update score display
-          scoreEl.textContent = data.vote_score;
-          card.dataset.voteScore = data.vote_score;
-          
-          // DYNAMIC REORDER: Sort queue by vote_score (highest first)
-          this.reorderQueue();
+          // Only update UI if vote was successful
+          if (response.ok && data.vote_score !== undefined) {
+            // Update score display
+            scoreEl.textContent = data.vote_score;
+            card.dataset.voteScore = data.vote_score;
+            
+            // DYNAMIC REORDER: Sort queue by vote_score (highest first)
+            this.reorderQueue();
+          } else {
+            // Vote failed - show error message and restore original score
+            const errorMsg = data.error || 'Failed to vote';
+            console.warn('[VOTING] Vote failed:', errorMsg);
+            
+            // Show user-friendly error (could use a toast/alert)
+            alert(errorMsg);
+            
+            // Ensure score is still displayed (shouldn't change, but be safe)
+            if (!scoreEl.textContent) {
+              scoreEl.textContent = originalScore;
+            }
+          }
           
         } catch (error) {
           console.error('[VOTING] Vote failed:', error);
+          // Restore original score on network error
+          if (!scoreEl.textContent) {
+            scoreEl.textContent = originalScore;
+          }
+          alert('Network error. Please try again.');
         }
       }
 
