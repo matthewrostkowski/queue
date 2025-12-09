@@ -131,6 +131,21 @@ class QueueItemsController < ApplicationController
   def upvote
     Rails.logger.info "[QUEUE_ITEMS] upvote id=#{@queue_item.id} current_score=#{@queue_item.vote_score}"
     
+    # Check if user has already voted on this item
+    existing_vote = Vote.find_by(user_id: current_user.id, queue_item_id: @queue_item.id)
+    
+    if existing_vote
+      Rails.logger.warn "[QUEUE_ITEMS] User #{current_user.id} already voted on item #{@queue_item.id}"
+      respond_to do |format|
+        format.html { redirect_to queue_path, alert: "You can only vote once per song!" }
+        format.json { render json: { error: "You can only vote once per song" }, status: :unprocessable_entity }
+      end
+      return
+    end
+    
+    # Create the upvote
+    vote = Vote.create!(user_id: current_user.id, queue_item_id: @queue_item.id, vote_type: 1)
+    
     @queue_item.increment!(:vote_score)
     @queue_item.increment!(:vote_count)
     
@@ -145,6 +160,21 @@ class QueueItemsController < ApplicationController
   # POST /queue_items/:id/downvote
   def downvote
     Rails.logger.info "[QUEUE_ITEMS] downvote id=#{@queue_item.id} current_score=#{@queue_item.vote_score}"
+    
+    # Check if user has already voted on this item
+    existing_vote = Vote.find_by(user_id: current_user.id, queue_item_id: @queue_item.id)
+    
+    if existing_vote
+      Rails.logger.warn "[QUEUE_ITEMS] User #{current_user.id} already voted on item #{@queue_item.id}"
+      respond_to do |format|
+        format.html { redirect_to queue_path, alert: "You can only vote once per song!" }
+        format.json { render json: { error: "You can only vote once per song" }, status: :unprocessable_entity }
+      end
+      return
+    end
+    
+    # Create the downvote
+    vote = Vote.create!(user_id: current_user.id, queue_item_id: @queue_item.id, vote_type: -1)
     
     @queue_item.decrement!(:vote_score)
     

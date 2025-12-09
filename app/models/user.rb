@@ -12,6 +12,7 @@ class User < ApplicationRecord
   # =====================
   has_many :queue_items, dependent: :nullify
   has_many :queued_songs, through: :queue_items, source: :song
+  has_many :votes, dependent: :destroy
 
   # Host-side association (your host branch)
   has_many :hosted_venues,

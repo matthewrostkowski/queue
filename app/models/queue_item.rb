@@ -3,6 +3,7 @@ class QueueItem < ApplicationRecord
   belongs_to :queue_session
   belongs_to :song, optional: true
   belongs_to :user, optional: true
+  has_many :votes, dependent: :destroy
 
   # Validations
   validates :status, inclusion: { in: %w[pending playing played] }, allow_nil: true

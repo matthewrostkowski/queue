@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_30_230829) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_01_120000) do
   create_table "balance_transactions", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "amount_cents", null: false
@@ -102,7 +102,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_30_230829) do
     t.integer "role", default: 0, null: false
     t.integer "balance_cents", default: 10000, null: false
     t.index ["balance_cents"], name: "index_users_on_balance_cents"
-    t.index ["canonical_email"], name: "index_users_on_canonical_email_unique", unique: true, where: "canonical_email IS NOT NULL /*application='Queuemusic'*/"
+    t.index ["canonical_email"], name: "index_users_on_canonical_email_unique", unique: true, where: "canonical_email IS NOT NULL /*application='Queuemusic'*/ /*application='Queuemusic'*/"
     t.index ["role"], name: "index_users_on_role"
   end
 
@@ -129,6 +129,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_30_230829) do
   create_table "votes", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.bigint "queue_item_id"
+    t.integer "vote_type", default: 1, null: false
+    t.index ["queue_item_id"], name: "index_votes_on_queue_item_id"
+    t.index ["user_id", "queue_item_id"], name: "index_votes_on_user_id_and_queue_item_id", unique: true
   end
 
   add_foreign_key "balance_transactions", "queue_items"
@@ -138,4 +143,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_30_230829) do
   add_foreign_key "queue_items", "users"
   add_foreign_key "queue_sessions", "venues"
   add_foreign_key "venues", "users", column: "host_user_id"
+  add_foreign_key "votes", "queue_items"
+  add_foreign_key "votes", "users"
 end
