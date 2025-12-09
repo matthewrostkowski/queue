@@ -3,7 +3,8 @@ class Vote < ApplicationRecord
   belongs_to :user
   belongs_to :queue_item
 
-  validates :user_id, uniqueness: { scope: :queue_item_id, message: "can only vote once per song in queue" }
+  # Note: Uniqueness constraint was removed to allow admins to vote multiple times
+  # The controller enforces the one-vote limit for non-admin users
   validates :user_id, :queue_item_id, :vote_type, presence: true
 
   # Scopes
