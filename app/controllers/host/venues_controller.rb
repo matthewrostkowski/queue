@@ -63,6 +63,9 @@ module Host
         @queue_items = @active_session.queue_items
                                       .includes(:song)
                                       .order(vote_count: :desc)
+        @upcoming_songs = @queue_items
+      else
+        @upcoming_songs = []
       end
     end
 
@@ -158,6 +161,7 @@ module Host
     def authorize_host!(venue)
       unless venue.host_user_id == current_user.id
         redirect_to mainpage_path, alert: "You are not authorized to manage this venue"
+        return
       end
     end
   end

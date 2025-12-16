@@ -151,14 +151,16 @@ class QueuesController < ApplicationController
   end
 
   # GET /queue/state (for polling)
-  def queue_state
-    Rails.logger.debug "[QUEUES] queue_state for session #{@queue_session&.id}"
+  def state
+    Rails.logger.debug "[QUEUES] state for session #{@queue_session&.id}"
     render json: {
       is_playing: @queue_session.respond_to?(:is_playing) ? @queue_session.is_playing : false,
       currently_playing: currently_playing_json,
       queue: upcoming_queue_json
     }
   end
+  
+  alias_method :queue_state, :state
 
   private
 

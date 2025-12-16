@@ -2,7 +2,8 @@ require 'rails_helper'
 
 RSpec.describe BalanceTransaction, type: :model do
   let!(:user) { User.create!(display_name: "Test User", email: "test@example.com", password: "password", auth_provider: "general_user") }
-  let!(:venue) { Venue.create!(name: "Test Venue") }
+  let!(:host_user) { User.create!(display_name: "Host", email: "host@example.com", password: "password", auth_provider: "general_user", role: :host) }
+  let!(:venue) { Venue.create!(name: "Test Venue", host_user_id: host_user.id) }
   let!(:queue_session) { QueueSession.create!(venue: venue, status: "active", join_code: "123456") }
   let!(:song) { Song.create!(title: "Test Song", artist: "Test Artist") }
   let!(:queue_item) { QueueItem.create!(queue_session: queue_session, user: user, song: song, title: song.title, artist: song.artist) }

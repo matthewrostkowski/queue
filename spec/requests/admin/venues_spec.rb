@@ -62,7 +62,8 @@ RSpec.describe "Admin::VenuesController", type: :request do
             venue: {
               name: "New Venue",
               location: "789 Pine St",
-              capacity: 150
+              capacity: 150,
+              host_user_id: admin_user.id
             }
           }
         }.to change(Venue, :count).by(1)

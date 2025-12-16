@@ -103,6 +103,7 @@ Rails.application.routes.draw do
         patch :regenerate_code
         patch :regenerate_venue_code
       end
+      resources :queue_sessions, only: [:create]
     end
 
     resources :queue_sessions, only: [] do

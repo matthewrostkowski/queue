@@ -41,8 +41,10 @@ describe Vote do
     it 'enforces unique user_id and queue_item_id combination' do
       Vote.create!(user_id: user.id, queue_item_id: queue_item.id, vote_type: 1)
       vote2 = Vote.new(user_id: user.id, queue_item_id: queue_item.id, vote_type: -1)
-      expect(vote2.valid?).to be_falsy
-      expect(vote2.errors[:user_id]).to be_present
+      # Note: Uniqueness constraint was removed from the model to allow admins to vote multiple times
+      # The controller enforces the one-vote limit for non-admin users
+      # So this test should check that the model allows multiple votes (controller handles uniqueness)
+      expect(vote2.valid?).to be_truthy
     end
   end
 

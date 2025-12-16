@@ -11,9 +11,14 @@ FactoryBot.define do
     peak_hours_start { 18 } # 6 PM
     peak_hours_end { 22 }   # 10 PM
     peak_hours_multiplier { 1.5 }
+    association :host_user, factory: :user
 
     trait :no_pricing do
       pricing_enabled { false }
+    end
+
+    trait :with_pricing_enabled do
+      pricing_enabled { true }
     end
 
     trait :expensive do

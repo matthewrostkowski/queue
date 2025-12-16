@@ -20,6 +20,8 @@ module Admin
 
     def create
       @venue = Venue.new(venue_params)
+      # Admin can create venues, but they need a host_user. Use current_user if no host_user_id provided
+      @venue.host_user_id ||= current_user.id if @venue.host_user_id.blank?
       if @venue.save
         redirect_to admin_venues_path, notice: 'Venue was successfully created.'
       else
@@ -54,7 +56,7 @@ module Admin
     end
 
     def venue_params
-      params.require(:venue).permit(:name, :location, :capacity)
+      params.require(:venue).permit(:name, :location, :capacity, :host_user_id)
     end
 
     def pricing_params

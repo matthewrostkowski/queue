@@ -41,6 +41,10 @@ RSpec.describe QueueSession, type: :model do
 
     it 'validates presence of join_code' do
       session = QueueSession.new(venue: venue, status: 'active')
+      # join_code has a database default of "pending", so we need to explicitly set it to blank to test validation
+      session.join_code = '' if session.respond_to?(:join_code=)
+      # Skip callbacks that might assign join_code
+      allow(session).to receive(:assign_join_code)
       expect(session).not_to be_valid
       expect(session.errors[:join_code]).to include("can't be blank")
     end
@@ -68,6 +72,10 @@ RSpec.describe QueueSession, type: :model do
   describe 'join_code' do
     it 'validates presence of join_code' do
       session = QueueSession.new(venue: venue, status: 'active')
+      # join_code has a database default of "pending", so we need to explicitly set it to blank to test validation
+      session.join_code = '' if session.respond_to?(:join_code=)
+      # Skip callbacks that might assign join_code
+      allow(session).to receive(:assign_join_code)
       expect(session).not_to be_valid
       expect(session.errors[:join_code]).to include("can't be blank")
     end

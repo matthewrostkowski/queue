@@ -13,7 +13,8 @@ RSpec.describe "Admin::Dashboard", type: :request do
 
   it "shows counts for users, venues, active sessions, and songs" do
     # seed some data
-    Venue.create!(name: "V1")
+    host_user = User.create!(display_name: "Host", email: "host@example.com", password: "password", auth_provider: "general_user", role: :host)
+    Venue.create!(name: "V1", host_user_id: host_user.id)
     s = QueueSession.create!(venue: Venue.first, is_active: true, is_playing: true, playback_started_at: 10.minutes.ago, access_code: "CODE1")
     Song.create!(title: "T1", artist: "A1")
     Song.create!(title: "T2", artist: "A2")
