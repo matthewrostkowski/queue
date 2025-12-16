@@ -10,6 +10,8 @@ RSpec.describe "Admin::VenuesController", type: :request do
 
   before do
     login_as(admin_user)
+    # Stub private method called in view
+    allow(DynamicPricingService).to receive(:get_active_user_count).and_return(0)
   end
 
   describe "GET /admin/venues" do

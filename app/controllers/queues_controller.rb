@@ -1,6 +1,6 @@
 # app/controllers/queues_controller.rb
 class QueuesController < ApplicationController
-  before_action :set_queue_session, only: [:show, :start_playback, :stop_playback, :next_track, :queue_state]
+  before_action :set_queue_session, only: [:show, :start_playback, :stop_playback, :next_track, :queue_state, :state]
 
   # GET /queue
   def show

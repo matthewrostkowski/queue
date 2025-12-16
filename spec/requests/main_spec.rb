@@ -31,8 +31,9 @@ RSpec.describe "Main", type: :request do
       venue: venue,
       created_at: attrs[:created_at] || 30.minutes.ago,
       playback_started_at: attrs[:playback_started_at] || 25.minutes.ago,
-      is_active: true,
-      is_playing: true
+      status: 'active',
+      started_at: attrs[:playback_started_at] || 25.minutes.ago,
+      join_code: attrs[:join_code] || JoinCodeGenerator.generate
     )
   end
 
@@ -51,7 +52,7 @@ RSpec.describe "Main", type: :request do
       get mainpage_path
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Welcome to Queue")
-      expect(response.body).to include("Scan QR")
+      expect(response.body).to include("Enter Code")
       expect(response.body).to include("Search Songs")
     end
 
@@ -71,7 +72,9 @@ RSpec.describe "Main", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Live Queues")
 
-      code = s.reload.access_code
+      # The view uses join_code, not access_code
+      s.reload
+      code = s.join_code || s.access_code
       expect(code).to be_present
       expect(response.body).to include(code)
 

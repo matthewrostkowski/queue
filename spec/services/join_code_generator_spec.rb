@@ -106,7 +106,9 @@ RSpec.describe JoinCodeGenerator do
 
       it "accepts numeric input and converts to string" do
         expect(JoinCodeGenerator.valid_format?(123456)).to be true
-        expect(JoinCodeGenerator.valid_format?(000001)).to be true
+        # Note: 000001 in Ruby is interpreted as octal (1), so we use string "000001" instead
+        expect(JoinCodeGenerator.valid_format?("000001")).to be true
+        expect(JoinCodeGenerator.valid_format?(1)).to be false  # Single digit is not valid
       end
     end
 

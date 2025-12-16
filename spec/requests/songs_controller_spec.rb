@@ -7,6 +7,11 @@ RSpec.describe "SongsController", type: :request do
     login_as(user)
     Song.create!(title: "Blue Bird", artist: "AAA")
     Song.create!(title: "Red Sun",   artist: "BBB")
+    # Stub the Deezer API search since controller uses external API
+    allow_any_instance_of(SongsController).to receive(:search_deezer).and_return([
+      { "title" => "Blue Bird", "artist" => "AAA", "id" => "123" },
+      { "title" => "Blue Moon", "artist" => "CCC", "id" => "124" }
+    ])
   end
 
   it "returns top 5 results matching title or artist (case-insensitive)" do
