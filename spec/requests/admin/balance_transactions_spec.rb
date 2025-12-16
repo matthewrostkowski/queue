@@ -89,7 +89,7 @@ RSpec.describe "Admin::BalanceTransactionsController", type: :request do
       login_as(regular_user)
       get admin_balance_transactions_path
       expect(response).to redirect_to(root_path)
-      expect(flash[:alert]).to include("Admin access required")
+      expect(flash[:alert]).to include("You must be an admin")
     end
   end
 

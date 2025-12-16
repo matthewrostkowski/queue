@@ -67,13 +67,15 @@ RSpec.describe "HostVenuesController", type: :request do
   end
 
   describe "GET /host_venues/:id" do
-    let!(:queue_session) { QueueSession.create!(venue: venue, status: "active", join_code: "123456") }
+    let!(:queue_session) { QueueSession.create!(venue: venue, status: "active", join_code: "123456", started_at: Time.current) }
 
     it "displays venue details and sessions" do
       get host_venue_path(venue)
       
       expect(response).to have_http_status(:ok)
       expect(assigns(:venue)).to eq(venue)
+      # The controller assigns @queue_sessions and @active_session
+      expect(assigns(:queue_sessions)).to be_present
       expect(assigns(:queue_sessions)).to include(queue_session)
       expect(assigns(:active_session)).to eq(queue_session)
     end
