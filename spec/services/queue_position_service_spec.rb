@@ -1,7 +1,6 @@
 require 'rails_helper'
 
 RSpec.describe QueuePositionService do
-  before { skip "Skipping queue position service specs for now" }
   let(:venue) { create(:venue, :with_pricing_enabled) }
   let(:queue_session) { create(:queue_session, venue: venue) }
   let(:user1) { create(:user) }

@@ -1,7 +1,6 @@
 require 'rails_helper'
 
 RSpec.describe "Admin::BalanceTransactionsController", type: :request do
-  before { skip "Skipping admin balance transactions requests for now" }
   let!(:admin_user) { User.create!(display_name: "Admin", email: "admin@example.com", password: "password", auth_provider: "general_user", role: :admin, balance_cents: 0) }
   let!(:regular_user) { User.create!(display_name: "Regular", email: "regular@example.com", password: "password", auth_provider: "general_user", role: :user, balance_cents: 1000) }
   let!(:another_user) { User.create!(display_name: "Another", email: "another@example.com", password: "password", auth_provider: "general_user", role: :user, balance_cents: 500) }

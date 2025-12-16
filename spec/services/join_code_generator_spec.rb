@@ -94,7 +94,6 @@ RSpec.describe JoinCodeGenerator do
 
   describe ".valid_format?" do
     context "with valid codes" do
-      before { skip "Skipping join code valid_format specs for now" }
       it "returns true for 6-digit codes" do
         expect(JoinCodeGenerator.valid_format?("123456")).to be true
         expect(JoinCodeGenerator.valid_format?("000000")).to be true

@@ -1,7 +1,6 @@
 require 'rails_helper'
 
 RSpec.feature "Dynamic Pricing", type: :feature do
-  before { skip "Skipping unstable dynamic pricing feature specs for now" }
   let!(:venue) { create(:venue, :with_pricing_enabled, name: "Test Club") }
   let!(:queue_session) { create(:queue_session, venue: venue, is_active: true) }
   let!(:user) { create(:user, display_name: "TestUser", role: :user) }

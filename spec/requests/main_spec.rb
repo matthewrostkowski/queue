@@ -1,7 +1,6 @@
 require "rails_helper"
 
 RSpec.describe "Main", type: :request do
-  before { skip "Skipping main page request specs for now" }
   let(:user) do
     User.create!(
       display_name: "TestUser",

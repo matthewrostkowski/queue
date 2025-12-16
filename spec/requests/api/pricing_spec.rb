@@ -1,7 +1,6 @@
 require 'rails_helper'
 
 RSpec.describe "Api::PricingController", type: :request do
-  before { skip "Skipping API pricing request specs for now" }
   let!(:user) { User.create!(display_name: "Test User", email: "user@example.com", password: "password", auth_provider: "general_user") }
   let!(:host_user) { User.create!(display_name: "Host", email: "host@example.com", password: "password", auth_provider: "general_user", role: :host) }
   let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St", host_user_id: host_user.id) }

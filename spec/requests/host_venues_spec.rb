@@ -1,7 +1,6 @@
 require 'rails_helper'
 
 RSpec.describe "HostVenuesController", type: :request do
-  before { skip "Skipping host_venues request specs for now" }
   let!(:host_user) { User.create!(display_name: "Host", email: "host@example.com", password: "password", auth_provider: "general_user", role: :host) }
   let!(:regular_user) { User.create!(display_name: "Regular", email: "regular@example.com", password: "password", auth_provider: "general_user", role: :user) }
   let!(:venue) { Venue.create!(name: "Test Venue", location: "123 Main St", capacity: 100, host_user_id: host_user.id) }

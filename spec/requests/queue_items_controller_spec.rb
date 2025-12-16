@@ -1,7 +1,6 @@
 require "rails_helper"
 
 RSpec.describe "QueueItemsController", type: :request do
-  before { skip "Skipping queue items controller request specs for now" }
   let!(:user)  { User.create!(display_name: "SpecUser", auth_provider: "guest", balance_cents: 10000) }
   let!(:host) { User.create!(display_name: "Host", auth_provider: "guest") }
   let!(:venue) { Venue.create!(name: "SpecVenue", host_user_id: host.id) }

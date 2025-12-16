@@ -1,7 +1,6 @@
 require "rails_helper"
 
 RSpec.describe "SongsController", type: :request do
-  before { skip "Skipping songs controller request specs for now" }
   let!(:user) { User.create!(display_name: "SpecUser", auth_provider: "guest") }
 
   before do
